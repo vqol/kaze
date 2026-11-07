@@ -353,7 +353,24 @@ export class KazeClient {
 		const client = this;
 		this.meta = {
 			get origin() {
-				return client.url;
+				const url = client.url;
+				// about:blank / about:srcdoc documents inherit their creator's origin.
+				// without this their requests carry an opaque "null" initiator origin
+				// (e.g. cloudflare's challenge script, injected via a blank iframe)
+				if (iswindow && url.protocol === "about:") {
+					try {
+						const parent = client.global.parent;
+						if (parent && parent !== client.global && parent[KAZECLIENT])
+							return parent[KAZECLIENT].meta.origin;
+						const opener = client.global.opener;
+						if (opener && opener[KAZECLIENT])
+							return opener[KAZECLIENT].meta.origin;
+					} catch {
+						// cross-origin creator (e.g. sandboxed frame): keep the opaque origin
+					}
+				}
+
+				return url;
 			},
 			get base() {
 				if (iswindow) {
