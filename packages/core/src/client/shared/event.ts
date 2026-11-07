@@ -1,5 +1,5 @@
 import { iswindow } from "@client/entry";
-import { ScramjetClient } from "@client/index";
+import { KazeClient } from "@client/index";
 import { getOwnPropertyDescriptorHandler } from "@client/helpers";
 import {
 	Object_defineProperty,
@@ -9,9 +9,9 @@ import {
 	Symbol_for,
 } from "@/shared/snapshot";
 
-const realOnEvent = Symbol_for("scramjet original onevent function");
+const realOnEvent = Symbol_for("kaze original onevent function");
 
-export default function (client: ScramjetClient, self: Self) {
+export default function (client: KazeClient, self: Self) {
 	const handlers = {
 		message: {
 			_init() {
@@ -28,7 +28,7 @@ export default function (client: ScramjetClient, self: Self) {
 			source() {
 				if (this.source === null) return null;
 
-				// const scram: ScramjetClient = this.source[SCRAMJETCLIENT];
+				// const scram: KazeClient = this.source[KAZECLIENT];
 
 				// if (scram) return scram.globalProxy;
 
@@ -36,14 +36,14 @@ export default function (client: ScramjetClient, self: Self) {
 			},
 			origin() {
 				if (!iswindow) return "";
-				if (typeof this.data === "object" && "$scramjet$origin" in this.data)
-					return this.data.$scramjet$origin;
+				if (typeof this.data === "object" && "$kaze$origin" in this.data)
+					return this.data.$kaze$origin;
 
 				return client.url.origin;
 			},
 			data() {
-				if (typeof this.data === "object" && "$scramjet$data" in this.data)
-					return this.data.$scramjet$data;
+				if (typeof this.data === "object" && "$kaze$data" in this.data)
+					return this.data.$kaze$data;
 
 				return this.data;
 			},

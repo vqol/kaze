@@ -1,35 +1,35 @@
-// NOTE: this is the entrypoint for scramjet.bundle.js
-// as such it exports everything in scramjet
-// the entry point for scramjet.all.js (what most sites wil use) is entry.ts
+// NOTE: this is the entrypoint for kaze.bundle.js
+// as such it exports everything in kaze
+// the entry point for kaze.all.js (what most sites wil use) is entry.ts
 
 import "./global.d";
 import { atob } from "@/shared/snapshot";
 import { setWasm } from "@rewriters/wasm";
-import { ScramjetVersionInfo, ScramjetConfig } from "./types";
+import { KazeVersionInfo, KazeConfig } from "./types";
 
 declare const VERSION: string;
 declare const COMMITHASH: string;
 declare const BUILDDATE: string;
-export const versionInfo: ScramjetVersionInfo = {
+export const versionInfo: KazeVersionInfo = {
 	version: VERSION,
 	build: COMMITHASH,
 	date: BUILDDATE,
 };
 
-export const defaultConfig: ScramjetConfig = {
+export const defaultConfig: KazeConfig = {
 	globals: {
-		wrapfn: "$scramjet$wrap",
-		wrappropertybase: "$scramjet__",
-		wrappropertyfn: "$scramjet$prop",
-		cleanrestfn: "$scramjet$clean",
-		importfn: "$scramjet$import",
-		rewritefn: "$scramjet$rewrite",
-		metafn: "$scramjet$meta",
-		wrappostmessagefn: "$scramjet$wrappostmessage",
-		pushsourcemapfn: "$scramjet$pushsourcemap",
-		trysetfn: "$scramjet$tryset",
-		templocid: "$scramjet$temploc",
-		tempunusedid: "$scramjet$tempunused",
+		wrapfn: "$kaze$wrap",
+		wrappropertybase: "$kaze__",
+		wrappropertyfn: "$kaze$prop",
+		cleanrestfn: "$kaze$clean",
+		importfn: "$kaze$import",
+		rewritefn: "$kaze$rewrite",
+		metafn: "$kaze$meta",
+		wrappostmessagefn: "$kaze$wrappostmessage",
+		pushsourcemapfn: "$kaze$pushsourcemap",
+		trysetfn: "$kaze$tryset",
+		templocid: "$kaze$temploc",
+		tempunusedid: "$kaze$tempunused",
 	},
 	flags: {
 		syncxhr: false,
@@ -50,7 +50,7 @@ export const defaultConfig: ScramjetConfig = {
 	maskedfiles: [],
 };
 
-export const defaultConfigDev: ScramjetConfig = {
+export const defaultConfigDev: KazeConfig = {
 	...defaultConfig,
 	flags: {
 		...defaultConfig.flags,

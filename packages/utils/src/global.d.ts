@@ -1,8 +1,8 @@
-import type * as ScramjetController from "@mercuryworkshop/scramjet-controller";
+import type * as KazeController from "@kaze/controller";
 
 declare global {
-	const $scramjet: typeof import("@mercuryworkshop/scramjet");
-	const $scramjetController: typeof ScramjetController;
+	const $kaze: typeof import("@kaze/core");
+	const $kazeController: typeof KazeController;
 }
 
 export {};

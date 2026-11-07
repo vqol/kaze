@@ -199,7 +199,7 @@ export default [
 			assertEqual(j.headers["authorization"], "Bearer tok", "Authorization header");
 			assertEqual(j.headers["accept"], "application/json", "Accept header");
 			assertEqual(j.headers["host"], location.host, "Host header matches the site: " + j.headers["host"]);
-			assert(!Object.keys(j.headers).some((h) => h.includes("scramjet")),
+			assert(!Object.keys(j.headers).some((h) => h.includes("kaze")),
 				"no proxy header reaches the origin: " + JSON.stringify(Object.keys(j.headers)));
 		`
 	),
@@ -213,7 +213,7 @@ export default [
 			assertEqual(r.headers.get("set-cookie"), null, "set-cookie is a forbidden response header");
 			assertEqual(r.headers.has("x-multi"), true, "has()");
 			const names = [...r.headers.keys()];
-			assert(!names.some((n) => n.includes("scramjet")), "no proxy headers exposed: " + JSON.stringify(names));
+			assert(!names.some((n) => n.includes("kaze")), "no proxy headers exposed: " + JSON.stringify(names));
 			assertEqual(await r.text(), "headers", "body");
 		`
 	),
@@ -238,7 +238,7 @@ export default [
 			assertEqual(r.status, 200, "final status");
 			assertEqual(r.redirected, true, "redirected flag");
 			assertEqual(r.url, location.origin + "/echo", "final URL");
-			assert(!r.url.includes("/~/sj/"), "no proxy URL in the final URL");
+			assert(!r.url.includes("/~/kz/"), "no proxy URL in the final URL");
 			assertEqual((await r.json()).path, "/echo", "landed on the target");
 		`
 	),
@@ -394,7 +394,7 @@ export default [
 			assertEqual(xhr.getResponseHeader("set-cookie"), null, "set-cookie is forbidden");
 			const all = xhr.getAllResponseHeaders();
 			assert(all.includes("x-custom: customvalue"), "getAllResponseHeaders: " + JSON.stringify(all));
-			assert(!all.includes("scramjet"), "no proxy headers listed: " + JSON.stringify(all));
+			assert(!all.includes("kaze"), "no proxy headers listed: " + JSON.stringify(all));
 			assert(!all.toLowerCase().includes("set-cookie"), "no set-cookie listed: " + JSON.stringify(all));
 		`
 	),
@@ -467,7 +467,7 @@ export default [
 			assertEqual(Response.error().type, "error", "Response.error");
 			const rd = Response.redirect("/somewhere", 302);
 			assertEqual(rd.status, 302, "Response.redirect status");
-			assert(!rd.headers.get("location").includes("/~/sj/"),
+			assert(!rd.headers.get("location").includes("/~/kz/"),
 				"Response.redirect location: " + rd.headers.get("location"));
 		`,
 	}),

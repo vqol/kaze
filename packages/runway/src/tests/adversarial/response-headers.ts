@@ -98,11 +98,11 @@ export default [
 		// A site that refuses to be framed still has to render inside the proxy's
 		// frame, so these headers must be neutralised; if that regresses, every
 		// site setting them goes blank. Applied to a subframe because serverTest
-		// owns the "/" response. scramjetOnly: unproxied, the frame is genuinely
+		// owns the "/" response. kazeOnly: unproxied, the frame is genuinely
 		// blocked, which is the point.
 		name: "respheaders-framing-headers-neutralised",
 		autoPass: true,
-		scramjetOnly: true,
+		kazeOnly: true,
 		js: `
 			const f = document.createElement("iframe");
 			f.src = "/framed.html";
@@ -133,7 +133,7 @@ export default [
 		// the site's own subresources must still load under it.
 		name: "respheaders-strict-csp",
 		autoPass: true,
-		scramjetOnly: true,
+		kazeOnly: true,
 		js: `
 			const f = document.createElement("iframe");
 			f.src = "/csp.html";

@@ -1,10 +1,10 @@
 import { iswindow } from "@client/entry";
-import { SCRAMJETCLIENT } from "@/symbols";
-import { ScramjetClient } from "@client/index";
+import { KAZECLIENT } from "@/symbols";
+import { KazeClient } from "@client/index";
 import { Object_defineProperty } from "@/shared/snapshot";
 import { POLLUTANT } from "./realm";
 
-export default function (client: ScramjetClient, self: Self) {
+export default function (client: KazeClient, self: Self) {
 	if (iswindow)
 		client.Proxy("window.postMessage", {
 			apply(ctx) {
@@ -36,13 +36,13 @@ export default function (client: ScramjetClient, self: Self) {
 					constructor: { constructor: Function },
 				} = pollutant;
 
-				// invoking stolen function will give us the caller's globalThis, remember scramjet has already proxied it!!!
+				// invoking stolen function will give us the caller's globalThis, remember kaze has already proxied it!!!
 				const callerGlobalThisProxied: Self = Function("return globalThis")();
-				const callerClient = callerGlobalThisProxied[SCRAMJETCLIENT];
+				const callerClient = callerGlobalThisProxied[KAZECLIENT];
 
 				// this WOULD be enough but the source argument of MessageEvent has to return the caller's window
 				// and if we just call it normally it would be coming from here, which WILL NOT BE THE CALLER'S because the accessor is from the parent
-				// so with the stolen function we wrap postmessage so the source will truly be the caller's window (remember that function is scramjet's!!!)
+				// so with the stolen function we wrap postmessage so the source will truly be the caller's window (remember that function is kaze's!!!)
 				const wrappedPostMessage = Function("...args", "this(...args)");
 
 				// console.log(
@@ -56,11 +56,11 @@ export default function (client: ScramjetClient, self: Self) {
 					callerClient.url.href === "about:srcdoc" ||
 					callerClient.url.href === "about:blank";
 				ctx.args[0] = {
-					$scramjet$messagetype: "window",
-					$scramjet$origin: inherit
-						? callerClient.global.parent[SCRAMJETCLIENT].url.origin
+					$kaze$messagetype: "window",
+					$kaze$origin: inherit
+						? callerClient.global.parent[KAZECLIENT].url.origin
 						: callerClient.url.origin,
-					$scramjet$data: ctx.args[0],
+					$kaze$data: ctx.args[0],
 				};
 				// console.error("?", ctx.args);
 				// eval("debugger");
@@ -76,10 +76,10 @@ export default function (client: ScramjetClient, self: Self) {
 	client.Proxy("BroadcastChannel.prototype.postMessage", {
 		apply(ctx) {
 			ctx.args[0] = {
-				$scramjet$messagetype: "window",
+				$kaze$messagetype: "window",
 				// TODO: need to actually look up the broadcastchannel itself in box i think
-				$scramjet$origin: client.url.origin,
-				$scramjet$data: ctx.args[0],
+				$kaze$origin: client.url.origin,
+				$kaze$data: ctx.args[0],
 			};
 		},
 	});
@@ -94,8 +94,8 @@ export default function (client: ScramjetClient, self: Self) {
 			// origin/source doesn't need to be preserved - it's null in the message event
 
 			ctx.args[0] = {
-				$scramjet$messagetype: "worker",
-				$scramjet$data: ctx.args[0],
+				$kaze$messagetype: "worker",
+				$kaze$data: ctx.args[0],
 			};
 		},
 	});

@@ -7,7 +7,7 @@ export type TestContext = {
 	page: Page;
 	/** FrameLocator for the test iframe inside the harness */
 	frame: FrameLocator;
-	/** Navigate the iframe to a URL through the scramjet proxy */
+	/** Navigate the iframe to a URL through the kaze proxy */
 	navigate: (url: string) => Promise<void>;
 };
 
@@ -44,15 +44,15 @@ export type Test = {
 	path?: string;
 	timeoutMs?: number;
 	reloadHarness?: boolean;
-	topLevelScramjet?: boolean;
+	topLevelKaze?: boolean;
 	warmProxiedNavigation?: boolean;
 	start: (ctx: {
 		pass: (message?: string, details?: any) => Promise<void>;
 		fail: (message?: string, details?: any) => Promise<void>;
 	}) => Promise<void>;
 	stop: () => Promise<void>;
-	/** If true, only run this test in the scramjet harness */
-	scramjetOnly?: boolean;
+	/** If true, only run this test in the kaze harness */
+	kazeOnly?: boolean;
 	/** If defined, this is a playwright test that controls the browser directly */
 	playwrightFn?: (ctx: TestContext) => Promise<void>;
 	/** If defined, this test runs directly in-process and does not use the harness/browser */
@@ -113,7 +113,7 @@ export function basicTest(props: {
 	name: string;
 	js: string;
 	autoPass?: boolean;
-	scramjetOnly?: boolean;
+	kazeOnly?: boolean;
 	expectedOkCount?: number;
 	hostname?: string;
 	cleartextHosts?: string[];
@@ -121,8 +121,8 @@ export function basicTest(props: {
 }): Test {
 	let port = 0;
 	let server: http.Server;
-	const scramjetOnly =
-		props.scramjetOnly ??
+	const kazeOnly =
+		props.kazeOnly ??
 		(props.hostname ? true : /checkglobal\s*\(/i.test(props.js));
 	const test: Test = {
 		name: props.name,
@@ -130,7 +130,7 @@ export function basicTest(props: {
 		hostname: props.hostname,
 		cleartextHosts: props.cleartextHosts,
 		scheme: props.scheme,
-		scramjetOnly,
+		kazeOnly,
 		expectedOkCount: props.expectedOkCount,
 		async start() {
 			return new Promise((resolve) => {
@@ -193,7 +193,7 @@ export function basicTest(props: {
 export function htmlTest(props: {
 	name: string;
 	html: string;
-	scramjetOnly?: boolean;
+	kazeOnly?: boolean;
 	expectedOkCount?: number;
 	hostname?: string;
 	cleartextHosts?: string[];
@@ -201,8 +201,8 @@ export function htmlTest(props: {
 }): Test {
 	let port = 0;
 	let server: http.Server;
-	const scramjetOnly =
-		props.scramjetOnly ??
+	const kazeOnly =
+		props.kazeOnly ??
 		(props.hostname ? true : /checkglobal\s*\(/i.test(props.html));
 	const test: Test = {
 		name: props.name,
@@ -210,7 +210,7 @@ export function htmlTest(props: {
 		hostname: props.hostname,
 		cleartextHosts: props.cleartextHosts,
 		scheme: props.scheme,
-		scramjetOnly,
+		kazeOnly,
 		expectedOkCount: props.expectedOkCount,
 		async start() {
 			return new Promise((resolve) => {
@@ -255,7 +255,7 @@ export function htmlTest(props: {
  * The test function receives a TestContext with:
  * - page: The Playwright Page object
  * - frame: A FrameLocator for the test iframe
- * - navigate(url): Navigate the iframe to a URL through scramjet
+ * - navigate(url): Navigate the iframe to a URL through kaze
  *
  * Example:
  * ```ts
@@ -287,7 +287,7 @@ export function playwrightTest(props: {
 			// Nothing to stop
 		},
 		playwrightFn: props.fn,
-		scramjetOnly: true,
+		kazeOnly: true,
 	};
 }
 
@@ -306,7 +306,7 @@ export function directTest(props: {
 		async stop() {
 			// Nothing to stop
 		},
-		scramjetOnly: true,
+		kazeOnly: true,
 		directFn: async () => {
 			const assert = (condition: unknown, message = "Assertion failed") => {
 				if (!condition) throw new Error(message);
@@ -341,7 +341,7 @@ export function serverTest(props: {
 	) => Promise<void>;
 	autoPass?: boolean;
 	js?: string;
-	scramjetOnly?: boolean;
+	kazeOnly?: boolean;
 	expectedOkCount?: number;
 	hostname?: string;
 	cleartextHosts?: string[];
@@ -350,8 +350,8 @@ export function serverTest(props: {
 	let port = 0;
 	let server: http.Server;
 	const activeSockets = new Set<Socket>();
-	const scramjetOnly =
-		props.scramjetOnly ??
+	const kazeOnly =
+		props.kazeOnly ??
 		(props.hostname
 			? true
 			: props.js
@@ -363,7 +363,7 @@ export function serverTest(props: {
 		hostname: props.hostname,
 		cleartextHosts: props.cleartextHosts,
 		scheme: props.scheme,
-		scramjetOnly,
+		kazeOnly,
 		expectedOkCount: props.expectedOkCount,
 		async start({
 			pass,

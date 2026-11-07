@@ -11,8 +11,8 @@ import { rewriteCss, unrewriteCss } from "@rewriters/css";
 import { rewriteHtml, unrewriteHtml } from "@rewriters/html";
 import { rewriteJs } from "@rewriters/js";
 import { unrewriteUrl } from "@rewriters/url";
-import { SCRAMJETCLIENT } from "@/symbols";
-import { ScramjetClient } from "@client/index";
+import { KAZECLIENT } from "@/symbols";
+import { KazeClient } from "@client/index";
 import {
 	getScriptBlockTypeString,
 	isHtmlMimeType,
@@ -22,7 +22,7 @@ import {
 import { ForeignContext } from "@/shared/rewriters/html";
 
 export function foreignContextForElement(
-	client: ScramjetClient,
+	client: KazeClient,
 	element: Element
 ): ForeignContext {
 	if (client.box.instanceof(element, "SVGElement")) return "svg";
@@ -32,7 +32,7 @@ export function foreignContextForElement(
 
 // NOTE: NOT INCLUSIVE OF THE CURRENT ELEMENT
 export function insideForeignContext(
-	client: ScramjetClient,
+	client: KazeClient,
 	element: Element | null
 ): ForeignContext {
 	let current: Element | null = element.parentElement;
@@ -50,7 +50,7 @@ export function insideForeignContext(
 }
 
 function scriptBlockTypeForElement(
-	client: ScramjetClient,
+	client: KazeClient,
 	element: Element
 ): string {
 	const hasType = client.natives.call(
@@ -82,7 +82,7 @@ function scriptBlockTypeForElement(
 
 // TODO: this is pretty bad. really this whole file sucks
 function collectAttributeMap(
-	client: ScramjetClient,
+	client: KazeClient,
 	element: Element,
 	overrideName: string,
 	overrideValue: unknown
@@ -92,7 +92,7 @@ function collectAttributeMap(
 		client.natives.call("Element.prototype.getAttributeNames", element) ?? [];
 
 	for (const attrName of attrNames) {
-		if (String(attrName).startsWith("scramjet-attr")) continue;
+		if (String(attrName).startsWith("kaze-attr")) continue;
 		const value = client.natives.call(
 			"Element.prototype.getAttribute",
 			element,
@@ -106,7 +106,7 @@ function collectAttributeMap(
 	return attrs;
 }
 
-export default function (client: ScramjetClient, self: typeof window) {
+export default function (client: KazeClient, self: typeof window) {
 	const attrObject = {
 		nonce: [self.HTMLElement],
 		integrity: [self.HTMLScriptElement, self.HTMLLinkElement],
@@ -243,7 +243,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 		apply(ctx) {
 			const [name] = ctx.args;
 
-			if (name.startsWith("scramjet-attr")) {
+			if (name.startsWith("kaze-attr")) {
 				return ctx.return(null);
 			}
 
@@ -251,10 +251,10 @@ export default function (client: ScramjetClient, self: typeof window) {
 				client.natives.call(
 					"Element.prototype.hasAttribute",
 					ctx.this,
-					`scramjet-attr-${name}`
+					`kaze-attr-${name}`
 				)
 			) {
-				const attrib = ctx.fn.call(ctx.this, `scramjet-attr-${name}`);
+				const attrib = ctx.fn.call(ctx.this, `kaze-attr-${name}`);
 				if (attrib === null) return ctx.return("");
 
 				return ctx.return(attrib);
@@ -265,9 +265,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 	client.Proxy("Element.prototype.getAttributeNames", {
 		apply(ctx) {
 			const attrNames = ctx.call() as string[];
-			const cleaned = attrNames.filter(
-				(attr) => !attr.startsWith("scramjet-attr")
-			);
+			const cleaned = attrNames.filter((attr) => !attr.startsWith("kaze-attr"));
 
 			ctx.return(cleaned);
 		},
@@ -275,15 +273,13 @@ export default function (client: ScramjetClient, self: typeof window) {
 
 	client.Proxy("Element.prototype.getAttributeNode", {
 		apply(ctx) {
-			if (String(ctx.args[0]).startsWith("scramjet-attr"))
-				return ctx.return(null);
+			if (String(ctx.args[0]).startsWith("kaze-attr")) return ctx.return(null);
 		},
 	});
 
 	client.Proxy("Element.prototype.hasAttribute", {
 		apply(ctx) {
-			if (String(ctx.args[0]).startsWith("scramjet-attr"))
-				return ctx.return(false);
+			if (String(ctx.args[0]).startsWith("kaze-attr")) return ctx.return(false);
 		},
 	});
 
@@ -317,13 +313,13 @@ export default function (client: ScramjetClient, self: typeof window) {
 						ctx.this,
 						name
 					);
-					ctx.fn.call(ctx.this, `scramjet-attr-${name}`, value);
+					ctx.fn.call(ctx.this, `kaze-attr-${name}`, value);
 					ctx.return(undefined);
 
 					return;
 				}
 				ctx.args[1] = ret;
-				ctx.fn.call(ctx.this, `scramjet-attr-${ctx.args[0]}`, value);
+				ctx.fn.call(ctx.this, `kaze-attr-${ctx.args[0]}`, value);
 			}
 		},
 	});
@@ -358,7 +354,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 				client.natives.call(
 					"Element.prototype.setAttribute",
 					ctx.this,
-					`scramjet-attr-${ctx.args[1]}`,
+					`kaze-attr-${ctx.args[1]}`,
 					value
 				);
 			}
@@ -390,11 +386,11 @@ export default function (client: ScramjetClient, self: typeof window) {
 	client.Proxy("Element.prototype.removeAttribute", {
 		apply(ctx) {
 			const name = String(ctx.args[0]);
-			if (name.startsWith("scramjet-attr")) return ctx.return(undefined);
+			if (name.startsWith("kaze-attr")) return ctx.return(undefined);
 			if (
 				client.natives.call("Element.prototype.hasAttribute", ctx.this, name)
 			) {
-				ctx.fn.call(ctx.this, `scramjet-attr-${ctx.args[0]}`);
+				ctx.fn.call(ctx.this, `kaze-attr-${ctx.args[0]}`);
 			}
 		},
 	});
@@ -402,11 +398,11 @@ export default function (client: ScramjetClient, self: typeof window) {
 	client.Proxy("Element.prototype.toggleAttribute", {
 		apply(ctx) {
 			const name = String(ctx.args[0]);
-			if (name.startsWith("scramjet-attr")) return ctx.return(false);
+			if (name.startsWith("kaze-attr")) return ctx.return(false);
 			if (
 				client.natives.call("Element.prototype.hasAttribute", ctx.this, name)
 			) {
-				ctx.fn.call(ctx.this, `scramjet-attr-${ctx.args[0]}`);
+				ctx.fn.call(ctx.this, `kaze-attr-${ctx.args[0]}`);
 			}
 		},
 	});
@@ -437,7 +433,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 				client.natives.call(
 					"Element.prototype.setAttribute",
 					ctx.this,
-					"scramjet-attr-script-source-src",
+					"kaze-attr-script-source-src",
 					bytesToBase64(TextEncoder_encode(newval))
 				);
 			} else if (client.box.instanceof(ctx.this, "HTMLStyleElement")) {
@@ -463,7 +459,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 				const scriptSource = client.natives.call(
 					"Element.prototype.getAttribute",
 					ctx.this,
-					"scramjet-attr-script-source-src"
+					"kaze-attr-script-source-src"
 				);
 
 				if (scriptSource) {
@@ -502,7 +498,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 			client.natives.call(
 				"Element.prototype.setAttribute",
 				element,
-				"scramjet-attr-script-source-src",
+				"kaze-attr-script-source-src",
 				bytesToBase64(TextEncoder_encode(value))
 			);
 
@@ -518,7 +514,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 			const scriptSource = client.natives.call(
 				"Element.prototype.getAttribute",
 				element,
-				"scramjet-attr-script-source-src"
+				"kaze-attr-script-source-src"
 			);
 			if (scriptSource) return atob(scriptSource);
 			return text;
@@ -632,7 +628,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 	// 					client.natives.call(
 	// 						"Element.prototype.setAttribute",
 	// 						ctx.this,
-	// 						"scramjet-attr-script-source-src",
+	// 						"kaze-attr-script-source-src",
 	// 						bytesToBase64(encoder.encode(newval))
 	// 					);
 	// 					node.data = newval;
@@ -719,7 +715,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 				if (!realwin) return realwin;
 
 				try {
-					if (!(SCRAMJETCLIENT in realwin)) {
+					if (!(KAZECLIENT in realwin)) {
 						// hook the iframe before the client can start to steal globals out of it
 						client.init.hookSubcontext(realwin, ctx.this);
 					}
@@ -748,7 +744,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 				);
 				if (!realwin) return realwin;
 
-				if (!(SCRAMJETCLIENT in realwin)) {
+				if (!(KAZECLIENT in realwin)) {
 					client.init.hookSubcontext(realwin, ctx.this);
 				}
 
@@ -767,7 +763,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 			apply(ctx) {
 				const doc = ctx.call();
 				if (doc) {
-					// we trap the contentDocument, this is really the scramjet version
+					// we trap the contentDocument, this is really the kaze version
 					return ctx.return(ctx.this.contentDocument);
 				}
 			},

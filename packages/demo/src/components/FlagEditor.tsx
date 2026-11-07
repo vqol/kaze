@@ -1,24 +1,24 @@
 import { createStore, css, type Component } from "dreamland/core";
-import type { ScramjetFlags } from "@mercuryworkshop/scramjet";
-import { defaultConfigDev } from "@mercuryworkshop/scramjet";
+import type { KazeFlags } from "@kaze/core";
+import { defaultConfigDev } from "@kaze/core";
 import { cachePlugin, controller } from "..";
 
-const flagStore = createStore<ScramjetFlags>(
+const flagStore = createStore<KazeFlags>(
 	{
 		...defaultConfigDev.flags,
 	},
 	{
-		ident: "scramjet-flags",
+		ident: "kaze-flags",
 		backing: "localstorage",
 		autosave: "auto",
 	}
 );
 
 // Flag descriptions for better UX
-const flagDescriptions: Record<keyof ScramjetFlags, string> = {
+const flagDescriptions: Record<keyof KazeFlags, string> = {
 	syncxhr: "Enable synchronous XMLHttpRequest support",
 	disableComputedWrap: "Skip deep js interception for better runtime speed",
-	cleanErrors: "prevent sites from noticing scramjet stack frames",
+	cleanErrors: "prevent sites from noticing kaze stack frames",
 	sourcemaps:
 		"prevent sites from noticing javascript transformations (at a performance cost)",
 	destructureRewrites:
@@ -30,7 +30,7 @@ const flagDescriptions: Record<keyof ScramjetFlags, string> = {
 	encapsulateWorkers:
 		"wrap web worker scripts in data urls to prevent scope issues (potentially buggy)",
 	scramitize:
-		"Trigger debugger whenever the string 'scramjet' or the real location is detected in attacker code (debug feature)",
+		"Trigger debugger whenever the string 'kaze' or the real location is detected in attacker code (debug feature)",
 	rewriterLogs: "Enable rewriter logging (debug feature)",
 	captureErrors: "Capture and handle JavaScript errors (debug feature)",
 	debugTrampolines: "Show proxied api in stack traces (debug feature)",
@@ -51,16 +51,16 @@ const FlagEditor: Component<
 	this.isOpen = false;
 	this.cacheBustStatus = "";
 
-	const toggleFlag = (flag: keyof ScramjetFlags, value: boolean) => {
+	const toggleFlag = (flag: keyof KazeFlags, value: boolean) => {
 		flagStore[flag] = value;
-		Object.assign(controller.scramjetConfig.flags, flagStore);
+		Object.assign(controller.kazeConfig.flags, flagStore);
 	};
 
 	const resetToDefaults = () => {
 		Object.assign(flagStore, {
 			...defaultConfigDev.flags,
 		});
-		Object.assign(controller.scramjetConfig.flags, flagStore);
+		Object.assign(controller.kazeConfig.flags, flagStore);
 	};
 
 	const bustCache = async () => {
@@ -78,7 +78,7 @@ const FlagEditor: Component<
 	};
 	cx.mount = async () => {
 		await controller.wait();
-		Object.assign(controller.scramjetConfig.flags, flagStore);
+		Object.assign(controller.kazeConfig.flags, flagStore);
 	};
 
 	return (
@@ -98,7 +98,7 @@ const FlagEditor: Component<
 			{use(this.isOpen).andThen(
 				<div class="editor-panel">
 					<div class="header">
-						<h3>Scramjet Feature Flags</h3>
+						<h3>Kaze Feature Flags</h3>
 						<div class="header-actions">
 							<button class="cache-bust-button" on:click={bustCache}>
 								Bust Cache
@@ -112,23 +112,21 @@ const FlagEditor: Component<
 						<div class="cache-bust-status">{use(this.cacheBustStatus)}</div>
 					)}
 					<div class="flags-list">
-						{(Object.keys(flagStore) as Array<keyof ScramjetFlags>).map(
-							(flag) => (
-								<label class="flag-item">
-									<input
-										type="checkbox"
-										checked={use(flagStore[flag])}
-										on:change={(e: Event) =>
-											toggleFlag(flag, (e.target as HTMLInputElement).checked)
-										}
-									/>
-									<div class="flag-info">
-										<span class="flag-name">{flag}</span>
-										<span class="flag-desc">{flagDescriptions[flag]}</span>
-									</div>
-								</label>
-							)
-						)}
+						{(Object.keys(flagStore) as Array<keyof KazeFlags>).map((flag) => (
+							<label class="flag-item">
+								<input
+									type="checkbox"
+									checked={use(flagStore[flag])}
+									on:change={(e: Event) =>
+										toggleFlag(flag, (e.target as HTMLInputElement).checked)
+									}
+								/>
+								<div class="flag-info">
+									<span class="flag-name">{flag}</span>
+									<span class="flag-desc">{flagDescriptions[flag]}</span>
+								</div>
+							</label>
+						))}
 					</div>
 				</div>
 			)}

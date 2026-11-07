@@ -12,12 +12,12 @@
 	"author": "",
 	"license": "AGPL-3.0-only",
 	"dependencies": {
-		"@mercuryworkshop/proxy-bootstrap": "*",
+		"@kaze/bootstrap": "*",
 		"express": "^4.21.2"
 	},
 	"devDependencies": {
-		"@mercuryworkshop/scramjet-utils": "*",
-		"@mercuryworkshop/scramjet-controller": "*",
-		"@mercuryworkshop/scramjet": "*"
+		"@kaze/utils": "*",
+		"@kaze/controller": "*",
+		"@kaze/core": "*"
 	}
 }

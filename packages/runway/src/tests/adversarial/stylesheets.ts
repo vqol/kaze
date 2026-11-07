@@ -141,12 +141,12 @@ export default [
 			await addSheet();
 			const sheet = [...document.styleSheets].find((s) => (s.href || "").includes("s.css"));
 			assert(sheet, "the sheet is present");
-			assert(!sheet.href.includes("/~/sj/"), "styleSheets[].href must not expose the proxy URL: " + sheet.href);
+			assert(!sheet.href.includes("/~/kz/"), "styleSheets[].href must not expose the proxy URL: " + sheet.href);
 			assertEqual(sheet.href, location.origin + "/s.css", "styleSheets[].href");
 			const imported = [...sheet.cssRules].find((r) => r.type === CSSRule.IMPORT_RULE);
 			if (imported) {
-				assert(!imported.href.includes("/~/sj/"), "@import rule href leaks: " + imported.href);
-				assert(!imported.styleSheet.href.includes("/~/sj/"),
+				assert(!imported.href.includes("/~/kz/"), "@import rule href leaks: " + imported.href);
+				assert(!imported.styleSheet.href.includes("/~/kz/"),
 					"the imported sheet's href leaks: " + imported.styleSheet.href);
 			}
 		`
@@ -165,9 +165,9 @@ export default [
 			d.className = "ctorbg";
 			document.body.appendChild(d);
 			const bg = getComputedStyle(d).backgroundImage;
-			assert(!bg.includes("/~/sj/"), "the computed background must not expose the proxy URL: " + bg);
+			assert(!bg.includes("/~/kz/"), "the computed background must not expose the proxy URL: " + bg);
 			assertEqual(bg, 'url("' + location.origin + '/cbg.png")', "computed background");
-			assert(!sheet.cssRules[0].cssText.includes("/~/sj/"), "cssText leaks: " + sheet.cssRules[0].cssText);
+			assert(!sheet.cssRules[0].cssText.includes("/~/kz/"), "cssText leaks: " + sheet.cssRules[0].cssText);
 		`
 	),
 ];

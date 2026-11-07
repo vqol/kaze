@@ -5,3 +5,5 @@ packages/core/rewriter/wasm/out
 packages/core/rewriter/*.js
 packages/core/README.md
 packages/runway/coverage
+.claude/
+packages/site/server.log

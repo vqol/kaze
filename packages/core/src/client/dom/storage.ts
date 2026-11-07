@@ -1,7 +1,7 @@
-import { ScramjetClient } from "@client/index";
+import { KazeClient } from "@client/index";
 import { Object_keys, Reflect_get, Reflect_ownKeys } from "@/shared/snapshot";
 
-export default function (client: ScramjetClient, self: Self) {
+export default function (client: KazeClient, self: Self) {
 	const handler: ProxyHandler<Storage> = {
 		get(target, prop) {
 			switch (prop) {

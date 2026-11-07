@@ -5,9 +5,9 @@ import { loadScript, registerSw } from "./clientcommon";
 import {
 	BootstrapOptions,
 	defaultConfig,
-	SCRAMJET_CONTROLLER_PACKAGE_NAME,
-	SCRAMJET_CONTROLLER_PINNED_MAJOR_VERSION,
-	SCRAMJET_PACKAGE_NAME,
+	KAZE_CONTROLLER_PACKAGE_NAME,
+	KAZE_CONTROLLER_PINNED_MAJOR_VERSION,
+	KAZE_PACKAGE_NAME,
 	LIBCURL_TRANSPORT_PACKAGE_NAME,
 	LIBCURL_TRANSPORT_PINNED_MAJOR_VERSION,
 	EPOXY_TRANSPORT_PACKAGE_NAME,
@@ -17,7 +17,7 @@ import {
 const isSw = "ServiceWorkerGlobalScope" in globalThis;
 
 const CDN_URL = "https://cdn.jsdelivr.net/npm/";
-const DB_NAME = "scramjet-bootstrap";
+const DB_NAME = "kaze-bootstrap";
 const DB_VERSION = 1;
 const STORE_NAME = "files";
 
@@ -163,7 +163,7 @@ async function ensureFile(
 
 if (isSw) {
 	let config: BootstrapOptions;
-	let scramjetControllerLoaded = false;
+	let kazeControllerLoaded = false;
 
 	// Set up message listener immediately on initial evaluation
 	addEventListener("message", (event) => {
@@ -190,9 +190,9 @@ if (isSw) {
 
 		event.respondWith(
 			(async () => {
-				// If scramjet controller is loaded, check if it should handle this request
-				if (scramjetControllerLoaded && (self as any).$scramjetController) {
-					const controller = (self as any).$scramjetController;
+				// If kaze controller is loaded, check if it should handle this request
+				if (kazeControllerLoaded && (self as any).$kazeController) {
+					const controller = (self as any).$kazeController;
 					if (controller.shouldRoute(event)) {
 						return controller.route(event);
 					}
@@ -222,62 +222,62 @@ if (isSw) {
 		try {
 			// Find latest versions
 			const controllerVersion = await findLatestVersion(
-				SCRAMJET_CONTROLLER_PACKAGE_NAME,
-				config.scramjetControllerVersionPin ||
-					SCRAMJET_CONTROLLER_PINNED_MAJOR_VERSION
+				KAZE_CONTROLLER_PACKAGE_NAME,
+				config.kazeControllerVersionPin || KAZE_CONTROLLER_PINNED_MAJOR_VERSION
 			);
 
 			console.log(controllerVersion);
-			// Fetch controller to get scramjet dependency version
-			const controllerPkgUrl = `${CDN_URL}${SCRAMJET_CONTROLLER_PACKAGE_NAME}@${controllerVersion}/package.json`;
+			// Fetch controller to get kaze dependency version
+			const controllerPkgUrl = `${CDN_URL}${KAZE_CONTROLLER_PACKAGE_NAME}@${controllerVersion}/package.json`;
 			const controllerPkgResponse = await fetch(controllerPkgUrl);
 			const controllerPkg = await controllerPkgResponse.json();
 
 			console.log(controllerPkg);
-			const scramjetVersion = controllerPkg.dependencies[
-				SCRAMJET_PACKAGE_NAME
-			].replace(/^[\^~]/, "");
+			const kazeVersion = controllerPkg.dependencies[KAZE_PACKAGE_NAME].replace(
+				/^[\^~]/,
+				""
+			);
 
-			// Download scramjet files
+			// Download kaze files
 			await ensureFile(
-				SCRAMJET_PACKAGE_NAME,
-				scramjetVersion,
-				"/dist/scramjet.js",
+				KAZE_PACKAGE_NAME,
+				kazeVersion,
+				"/dist/kaze.js",
 				"application/javascript",
-				config.scramjetBundlePath
+				config.kazeBundlePath
 			);
 
 			await ensureFile(
-				SCRAMJET_PACKAGE_NAME,
-				scramjetVersion,
-				"/dist/scramjet.wasm",
+				KAZE_PACKAGE_NAME,
+				kazeVersion,
+				"/dist/kaze.wasm",
 				"application/wasm",
-				config.scramjetWasmPath
+				config.kazeWasmPath
 			);
 
 			// Download controller files
 			await ensureFile(
-				SCRAMJET_CONTROLLER_PACKAGE_NAME,
+				KAZE_CONTROLLER_PACKAGE_NAME,
 				controllerVersion,
 				"/dist/controller.api.js",
 				"application/javascript",
-				config.scramjetControllerApiPath
+				config.kazeControllerApiPath
 			);
 
 			await ensureFile(
-				SCRAMJET_CONTROLLER_PACKAGE_NAME,
+				KAZE_CONTROLLER_PACKAGE_NAME,
 				controllerVersion,
 				"/dist/controller.inject.js",
 				"application/javascript",
-				config.scramjetControllerInjectPath
+				config.kazeControllerInjectPath
 			);
 
 			await ensureFile(
-				SCRAMJET_CONTROLLER_PACKAGE_NAME,
+				KAZE_CONTROLLER_PACKAGE_NAME,
 				controllerVersion,
 				"/dist/controller.sw.js",
 				"application/javascript",
-				config.scramjetControllerSwPath
+				config.kazeControllerSwPath
 			);
 
 			// Download transport files
@@ -313,10 +313,10 @@ if (isSw) {
 
 			console.log("Bootstrap initialization complete");
 
-			// Import scramjet controller SW script
+			// Import kaze controller SW script
 			try {
 				// Fetch the controller script from IndexedDB cache
-				const cachedController = await getFile(config.scramjetControllerSwPath);
+				const cachedController = await getFile(config.kazeControllerSwPath);
 				if (cachedController) {
 					// Convert ArrayBuffer to string
 					const decoder = new TextDecoder();
@@ -326,13 +326,13 @@ if (isSw) {
 					// This avoids the issue with adding event listeners after initial evaluation
 					(0, eval)(scriptContent);
 
-					scramjetControllerLoaded = true;
-					console.log("Scramjet controller loaded");
+					kazeControllerLoaded = true;
+					console.log("Kaze controller loaded");
 				} else {
-					console.error("Scramjet controller not found in cache");
+					console.error("Kaze controller not found in cache");
 				}
 			} catch (error) {
-				console.error("Failed to load scramjet controller:", error);
+				console.error("Failed to load kaze controller:", error);
 			}
 
 			// Send init done message

@@ -3,7 +3,7 @@ import {
 	ProxyTransport,
 	RawHeaders,
 } from "@mercuryworkshop/proxy-transports";
-import { SCRAMJETCLIENT } from "@/symbols";
+import { KAZECLIENT } from "@/symbols";
 import { getOwnPropertyDescriptorHandler } from "@client/helpers";
 import { createLocationProxy } from "@client/location";
 import { createWrapFn } from "@client/shared/wrap";
@@ -17,12 +17,12 @@ import {
 import {
 	flagEnabled,
 	HtmlRewriterHooks,
-	ScramjetContext,
-	ScramjetHeaders,
+	KazeContext,
+	KazeHeaders,
 } from "@/shared";
 import { iswindow } from "./entry";
 import { SingletonBox } from "./singletonbox";
-import { ScramjetConfig } from "@/types";
+import { KazeConfig } from "@/types";
 import { Tap } from "@/Tap";
 import {
 	type CookieSyncEntry,
@@ -67,15 +67,15 @@ type ProxyApplyThis<T extends string> =
 			: unknown
 		: ThisParameterType<Extract<GlobalTraverse<T>, AnyFunction>>;
 
-export type ScramjetClientInit = {
-	context: ScramjetContext;
+export type KazeClientInit = {
+	context: KazeContext;
 	transport: ProxyTransport;
 	sendSetCookie: (
 		cookies: CookieSyncEntry[],
 		options?: CookieSyncOptions
 	) => Promise<void>;
 	shouldBlockMessageEvent?: (ev: MessageEvent) => boolean;
-	hookSubcontext: (self: Self, frame?: HTMLIFrameElement) => ScramjetClient;
+	hookSubcontext: (self: Self, frame?: HTMLIFrameElement) => KazeClient;
 	initHeaders: RawHeaders;
 	history: TrackedHistoryState[];
 };
@@ -148,11 +148,11 @@ export type Trap<T extends string> = {
 	set?: (ctx: TrapCtx<T>, v: GlobalTraverse<T>) => void;
 };
 
-export type ScramjetModule = {
-	enabled: (client: ScramjetClient) => boolean | undefined;
-	disabled: (client: ScramjetClient, self: GlobalThis) => void | undefined;
+export type KazeModule = {
+	enabled: (client: KazeClient) => boolean | undefined;
+	disabled: (client: KazeClient, self: GlobalThis) => void | undefined;
 	order: number | undefined;
-	default: (client: ScramjetClient, self: GlobalThis) => void;
+	default: (client: KazeClient, self: GlobalThis) => void;
 };
 
 function findBox(global: Window, seen: Window[]): SingletonBox | null {
@@ -160,8 +160,8 @@ function findBox(global: Window, seen: Window[]): SingletonBox | null {
 	seen.push(global);
 
 	try {
-		if ((SCRAMJETCLIENT in global) as any) {
-			return global[SCRAMJETCLIENT].box;
+		if ((KAZECLIENT in global) as any) {
+			return global[KAZECLIENT].box;
 		}
 	} catch {}
 
@@ -192,7 +192,7 @@ function findBox(global: Window, seen: Window[]): SingletonBox | null {
 	return null;
 }
 
-export class ScramjetClient {
+export class KazeClient {
 	locationProxy: any;
 	indirectEval: any;
 	serviceWorker: ServiceWorkerContainer;
@@ -217,13 +217,13 @@ export class ScramjetClient {
 
 	box: SingletonBox;
 
-	context: ScramjetContext;
+	context: KazeContext;
 
-	initHeaders: ScramjetHeaders;
+	initHeaders: KazeHeaders;
 
 	history: TrackedHistoryState[];
 
-	private flagCache = new _Map<keyof ScramjetConfig["flags"], boolean>();
+	private flagCache = new _Map<keyof KazeConfig["flags"], boolean>();
 
 	hooks = {
 		rewriter: {
@@ -234,11 +234,11 @@ export class ScramjetClient {
 
 	constructor(
 		public global: GlobalThis,
-		public init: ScramjetClientInit
+		public init: KazeClientInit
 	) {
-		if (SCRAMJETCLIENT in global) {
+		if (KAZECLIENT in global) {
 			dbg.error(
-				"attempted to initialize a scramjet client, but one is already loaded - this is very bad"
+				"attempted to initialize a kaze client, but one is already loaded - this is very bad"
 			);
 			throw new Error();
 		}
@@ -258,7 +258,7 @@ export class ScramjetClient {
 
 		this.context = init.context;
 		if (init.initHeaders)
-			this.initHeaders = ScramjetHeaders.fromRawHeaders(init.initHeaders);
+			this.initHeaders = KazeHeaders.fromRawHeaders(init.initHeaders);
 		this.history = init.history;
 		this.context.hooks = {
 			rewriter: this.hooks.rewriter,
@@ -269,7 +269,7 @@ export class ScramjetClient {
 		this.serviceWorker = this.global.navigator.serviceWorker;
 
 		if (iswindow) {
-			global.document[SCRAMJETCLIENT] = this;
+			global.document[KAZECLIENT] = this;
 		}
 
 		this.indirectEval = createIndirectEval(this);
@@ -392,29 +392,29 @@ export class ScramjetClient {
 				}
 
 				try {
-					// find the topmost frame that's controlled by scramjet, stopping before the real top frame
+					// find the topmost frame that's controlled by kaze, stopping before the real top frame
 					while (currentWin.parent.window !== currentWin.window) {
-						if (!currentWin.parent.window[SCRAMJETCLIENT]) break;
+						if (!currentWin.parent.window[KAZECLIENT]) break;
 						currentWin = currentWin.parent.window;
 					}
 				} catch {
 					// doesn't matter if it throws here just means we found the topmost one
 				}
 
-				const curclient = currentWin[SCRAMJETCLIENT];
+				const curclient = currentWin[KAZECLIENT];
 				const frame = curclient.descriptors.get(
 					"window.frameElement",
 					currentWin
 				);
 				if (!frame) {
-					// we're inside an iframe, but the top frame is scramjet-controlled and top level, so we can't get a top frame name
+					// we're inside an iframe, but the top frame is kaze-controlled and top level, so we can't get a top frame name
 					// or we're cross-origin and frameElement doesn't exist. that's a TODO because this won't work
 					return null;
 				}
 				if (!frame.name) {
-					// the top frame is scramjet-controlled, but it has no name. this is user error
+					// the top frame is kaze-controlled, but it has no name. this is user error
 					dbg.error(
-						"YOU NEED TO USE `new ScramjetFrame()`! DIRECT IFRAMES WILL NOT WORK"
+						"YOU NEED TO USE `new KazeFrame()`! DIRECT IFRAMES WILL NOT WORK"
 					);
 
 					return null;
@@ -438,23 +438,23 @@ export class ScramjetClient {
 					}
 
 					const parentWin = client.global.parent.window;
-					if (parentWin[SCRAMJETCLIENT]) {
-						// we're inside an iframe, and the parent is scramjet-controlled
-						const parentClient = parentWin[SCRAMJETCLIENT];
+					if (parentWin[KAZECLIENT]) {
+						// we're inside an iframe, and the parent is kaze-controlled
+						const parentClient = parentWin[KAZECLIENT];
 						const frame = parentClient.descriptors.get(
 							"window.frameElement",
 							parentWin
 						);
 
 						if (!frame) {
-							// parent is scramjet controlled and top-level. there is no parent frame name
+							// parent is kaze controlled and top-level. there is no parent frame name
 							return null;
 						}
 
 						if (!frame.name) {
-							// the parent frame is scramjet-controlled, but it has no name. this is user error
+							// the parent frame is kaze-controlled, but it has no name. this is user error
 							dbg.error(
-								"YOU NEED TO USE `new ScramjetFrame()`! DIRECT IFRAMES WILL NOT WORK"
+								"YOU NEED TO USE `new KazeFrame()`! DIRECT IFRAMES WILL NOT WORK"
 							);
 
 							return null;
@@ -462,16 +462,16 @@ export class ScramjetClient {
 
 						return frame.name;
 					} else {
-						// we're inside an iframe, and the parent is not scramjet-controlled
+						// we're inside an iframe, and the parent is not kaze-controlled
 						// return our own frame name
 						const frame = client.descriptors.get(
 							"window.frameElement",
 							client.global
 						);
 						if (!frame.name) {
-							// the parent frame is not scramjet-controlled, so we can't get a parent frame name
+							// the parent frame is not kaze-controlled, so we can't get a parent frame name
 							dbg.error(
-								"YOU NEED TO USE `new ScramjetFrame()`! DIRECT IFRAMES WILL NOT WORK"
+								"YOU NEED TO USE `new KazeFrame()`! DIRECT IFRAMES WILL NOT WORK"
 							);
 
 							return null;
@@ -517,7 +517,7 @@ export class ScramjetClient {
 		};
 		this.locationProxy = createLocationProxy(this, global);
 
-		global[SCRAMJETCLIENT] = this;
+		global[KAZECLIENT] = this;
 	}
 
 	/** Apply document injection init when a client was already installed (e.g. early contentWindow). */
@@ -526,7 +526,7 @@ export class ScramjetClient {
 		history: TrackedHistoryState[];
 		cookies?: string;
 	}) {
-		this.initHeaders = ScramjetHeaders.fromRawHeaders(init.initHeaders);
+		this.initHeaders = KazeHeaders.fromRawHeaders(init.initHeaders);
 		this.history = init.history;
 		if (init.cookies !== undefined) {
 			this.context.cookieJar.load(init.cookies);
@@ -538,10 +538,10 @@ export class ScramjetClient {
 			recursive: true,
 		});
 
-		const modules: ScramjetModule[] = [];
+		const modules: KazeModule[] = [];
 
 		for (const key of context.keys()) {
-			const module = context(key) as ScramjetModule;
+			const module = context(key) as KazeModule;
 			if (!key.endsWith(".ts")) continue;
 			if (
 				(key.startsWith("./dom/") && "window" in this.global) ||
@@ -650,14 +650,14 @@ export class ScramjetClient {
 			location = location.replace(/\n/g, "\\n").replace(/\r/g, "\\r");
 			windowName = windowName.replace(/\n/g, "\\n").replace(/\r/g, "\\r");
 			fnName = fnName.replace(/\n/g, "\\n").replace(/\r/g, "\\r");
-			const sourceURL = debugname ? `${debugname}.sj` : "rawproxy.sj";
+			const sourceURL = debugname ? `${debugname}.kz` : "rawproxy.kz";
 
 			const { construct, apply } = this.natives.call(
 				"Function",
 				null,
 				`"use strict";
 
-// SCRAMJET FUNCTION INTERCEPT
+// KAZE FUNCTION INTERCEPT
 // target: ${fnName}
 // frame: ${windowName}
 // location: ${location}
@@ -772,8 +772,8 @@ return { apply, construct };
 						if (this.box.instanceof(err.stack, "Object")) {
 							//i'm not going to explain this
 							err.stack = err.stack.stack;
-							// eslint-disable-next-line scramjet-core/no-globals
-							console.error("ERROR FROM SCRAMJET INTERNALS", err);
+							// eslint-disable-next-line kaze-core/no-globals
+							console.error("ERROR FROM KAZE INTERNALS", err);
 							if (!this.flagEnabled("allowFailedIntercepts")) {
 								Error.prepareStackTrace = pst;
 								throw err;
@@ -904,7 +904,7 @@ return { apply, construct };
 		return unrewriteUrl(url, this.context);
 	}
 
-	flagEnabled(flag: keyof ScramjetConfig["flags"]): boolean {
+	flagEnabled(flag: keyof KazeConfig["flags"]): boolean {
 		const cached = this.flagCache.get(flag);
 		if (cached !== undefined) return cached;
 
@@ -913,7 +913,7 @@ return { apply, construct };
 		return result;
 	}
 
-	get config(): ScramjetConfig {
+	get config(): KazeConfig {
 		return this.context.config;
 	}
 }

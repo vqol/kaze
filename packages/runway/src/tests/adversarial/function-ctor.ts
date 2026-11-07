@@ -87,7 +87,7 @@ export default [
 		js: `
 			const f = new Function("a", "return a + 1");
 			const s = f.toString();
-			assert(!s.includes("scramjet"), "must not stringify to rewritten source: " + s);
+			assert(!s.includes("kaze"), "must not stringify to rewritten source: " + s);
 			assert(s.includes("return a + 1"), "the body must round trip: " + s);
 			assert(s.startsWith("function anonymous"), "shape: " + s);
 		`,

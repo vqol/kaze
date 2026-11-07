@@ -1,11 +1,11 @@
 {
-	"name": "@mercuryworkshop/scramjet",
+	"name": "@kaze/core",
 	"version": "2.0.67-alpha.2",
 	"license": "AGPL-3.0-only",
 	"description": "An experimental web proxy that aims to be the successor to Ultraviolet",
 	"type": "module",
-	"main": "./dist/scramjet-external.mjs",
-	"module": "./dist/scramjet-external.mjs",
+	"main": "./dist/kaze-external.mjs",
+	"module": "./dist/kaze-external.mjs",
 	"types": "./dist/types/typesEntry.d.ts",
 	"repository": {
 		"type": "git",
@@ -23,15 +23,15 @@
 	"exports": {
 		".": {
 			"types": "./dist/types/typesEntry.d.ts",
-			"default": "./dist/scramjet-external.mjs"
+			"default": "./dist/kaze-external.mjs"
 		},
 		"./bundled": {
 			"types": "./dist/types/index.d.ts",
-			"default": "./dist/scramjet.mjs"
+			"default": "./dist/kaze.mjs"
 		},
 		"./bundled-wasm": {
 			"types": "./dist/types/index.d.ts",
-			"default": "./dist/scramjet_bundled.mjs"
+			"default": "./dist/kaze_bundled.mjs"
 		},
 		"./path": {
 			"types": "./lib/index.d.ts",

@@ -1,8 +1,8 @@
-import { ScramjetClient } from "@client/index";
+import { KazeClient } from "@client/index";
 import { Tap } from "@/Tap";
 import { String, _URL } from "@/shared/snapshot";
 
-export default function (client: ScramjetClient, _self: Self) {
+export default function (client: KazeClient, _self: Self) {
 	client.Proxy(
 		["History.prototype.pushState", "History.prototype.replaceState"],
 		{

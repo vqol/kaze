@@ -24,7 +24,7 @@ if (!process.env.CI) {
 	try {
 		writeFileSync(
 			".git/hooks/pre-commit",
-			"pnpm format\ngit update-index --again",
+			"pnpm format\ngit update-index --again"
 		);
 		chmodSync(".git/hooks/pre-commit", 0o755);
 	} catch {}
@@ -35,8 +35,8 @@ function nodeExternals(
 	callback: (
 		err?: Error,
 		result?: ExternalItemValue,
-		type?: ExternalsType,
-	) => void,
+		type?: ExternalsType
+	) => void
 ) {
 	if (!/^(\.|\/)/.test(request || "")) {
 		return callback(undefined, request);
@@ -47,7 +47,7 @@ function nodeExternals(
 
 /**
  * Generates a thin "external" stub that re-exports the entries of a globally
- * assigned bundle (e.g. `self.$scramjet`). Consumers that import the package
+ * assigned bundle (e.g. `self.$kaze`). Consumers that import the package
  * by its bare name pay zero source size — the stub is just a destructure of
  * the global.
  *
@@ -73,7 +73,7 @@ class ExternalStubPlugin {
 	}
 	private extractRuntimeExportNames(source: string): string[] {
 		const names = new Set<string>();
-	
+
 		// ESM bundles end with `export { __webpack_exports__X as X, ... };`
 		const esmMatches = source.matchAll(/export\s*\{([^}]+)\}\s*;/g);
 		for (const m of esmMatches) {
@@ -88,14 +88,14 @@ class ExternalStubPlugin {
 			}
 		}
 		if (names.size > 0) return [...names];
-	
+
 		// Webpack IIFE bundles register entry exports via the *last*
 		// `__webpack_require__.d(__webpack_exports__, { ... })` call. In
 		// production builds those identifiers get minified (e.g. `r.d(o, {...})`),
 		// so match any `<ident>.d(<ident>, { ... })` shape.
 		const defMatches = [
 			...source.matchAll(
-				/\b[A-Za-z_$][\w$]*\.d\([A-Za-z_$][\w$]*,\s*\{([\s\S]*?)\}\)/g,
+				/\b[A-Za-z_$][\w$]*\.d\([A-Za-z_$][\w$]*,\s*\{([\s\S]*?)\}\)/g
 			),
 		];
 		if (defMatches.length > 0) {
@@ -106,7 +106,7 @@ class ExternalStubPlugin {
 		}
 		return [...names];
 	}
-	
+
 	private renderExternalStub(names: string[], globalName: string): string {
 		const sorted = [...names].sort();
 		return [
@@ -119,7 +119,7 @@ class ExternalStubPlugin {
 			"",
 		].join("\n");
 	}
-	
+
 	apply(compiler: WebpackCompiler) {
 		compiler.hooks.afterEmit.tap("ExternalStubPlugin", () => {
 			const bundlePath = join(this.outputDir, this.bundleFilename);
@@ -129,7 +129,7 @@ class ExternalStubPlugin {
 				source = readFileSync(bundlePath, "utf-8");
 			} catch (e: any) {
 				console.error(
-					`ExternalStubPlugin: cannot read ${bundlePath}: ${e.message}`,
+					`ExternalStubPlugin: cannot read ${bundlePath}: ${e.message}`
 				);
 				return;
 			}
@@ -137,7 +137,7 @@ class ExternalStubPlugin {
 			const names = this.extractRuntimeExportNames(source);
 			if (names.length === 0) {
 				console.warn(
-					`ExternalStubPlugin: no exports discovered in ${bundlePath}; stub not written`,
+					`ExternalStubPlugin: no exports discovered in ${bundlePath}; stub not written`
 				);
 				return;
 			}
@@ -145,7 +145,7 @@ class ExternalStubPlugin {
 			const stub = this.renderExternalStub(names, this.globalName);
 			writeFileSync(stubPath, stub);
 			console.log(
-				`ExternalStubPlugin: wrote ${this.stubFilename} (${names.length} exports → globalThis.${this.globalName})`,
+				`ExternalStubPlugin: wrote ${this.stubFilename} (${names.length} exports → globalThis.${this.globalName})`
 			);
 		});
 	}
@@ -159,7 +159,7 @@ class ExternalStubPlugin {
  */
 const createTypeChecker = (
 	dir: string,
-	options: Pick<TsCheckerRspackPluginOptions, "issue"> = {},
+	options: Pick<TsCheckerRspackPluginOptions, "issue"> = {}
 ) =>
 	new TsCheckerRspackPlugin({
 		typescript: {
@@ -262,7 +262,7 @@ const createGenericConfig = (meta: any, options: Partial<RspackOptions>) => {
 						const hash = JSON.stringify(
 							execSync("git rev-parse --short HEAD", {
 								encoding: "utf-8",
-							}).replace(/\r?\n|\r/g, ""),
+							}).replace(/\r?\n|\r/g, "")
 						);
 
 						return hash;
@@ -274,7 +274,7 @@ const createGenericConfig = (meta: any, options: Partial<RspackOptions>) => {
 			new rspack.DefinePlugin({
 				BUILDDATE: JSON.stringify(new Date().toISOString()),
 			}),
-			rsDoctorPlugin
+			rsDoctorPlugin,
 		],
 		optimization: {
 			minimizer: [
@@ -289,44 +289,44 @@ const createGenericConfig = (meta: any, options: Partial<RspackOptions>) => {
 	return defineConfig(merge<RspackOptions>(def as RspackOptions, options));
 };
 
-const scramjetdir = join(__dirname, "packages/core");
-const scramjetmeta = JSON.parse(
-	await readFile(join(scramjetdir, "package.json"), "utf-8"),
+const kazedir = join(__dirname, "packages/core");
+const kazemeta = JSON.parse(
+	await readFile(join(kazedir, "package.json"), "utf-8")
 );
-const wasmPath = join(scramjetdir, "dist/scramjet.wasm");
+const wasmPath = join(kazedir, "dist/kaze.wasm");
 let wasmB64: string;
 const wasmBuf = await readFile(wasmPath);
 wasmB64 = wasmBuf.toString("base64");
 
-type ScramjetBuildConfig = {
+type KazeBuildConfig = {
 	name: string;
 	entry: RspackOptions["entry"];
 	output: RspackOptions["output"];
 	rewriterWasm: string;
 	extraConfig?: Partial<RspackOptions>;
 };
-// Common configuration options for scramjet builds
-const createScramjetConfig = (options: ScramjetBuildConfig) => {
+// Common configuration options for kaze builds
+const createKazeConfig = (options: KazeBuildConfig) => {
 	const { name, entry, output, rewriterWasm, extraConfig = {} } = options;
 
-	return createGenericConfig(scramjetmeta, {
+	return createGenericConfig(kazemeta, {
 		name,
 		entry,
 		resolve: {
 			alias: {
-				"@rewriters": join(scramjetdir, "src/shared/rewriters"),
-				"@client": join(scramjetdir, "src/client"),
-				"@": join(scramjetdir, "src"),
+				"@rewriters": join(kazedir, "src/shared/rewriters"),
+				"@client": join(kazedir, "src/client"),
+				"@": join(kazedir, "src"),
 			},
 		},
 		output,
 		plugins: [
 			new rspack.ProvidePlugin({
-				dbg: [join(scramjetdir, "src/log.ts"), "default"],
+				dbg: [join(kazedir, "src/log.ts"), "default"],
 			}),
 			new rspack.DefinePlugin({
 				REWRITERWASM: rewriterWasm,
-			})
+			}),
 		],
 		target: "webworker",
 		ignoreWarnings: [
@@ -340,19 +340,19 @@ const createScramjetConfig = (options: ScramjetBuildConfig) => {
 	});
 };
 
-// IIFE build that does NOT bundle the wasm, exposes global $scramjet
-const iifeConfig = createScramjetConfig({
-	name: "scramjet-iife",
+// IIFE build that does NOT bundle the wasm, exposes global $kaze
+const iifeConfig = createKazeConfig({
+	name: "kaze-iife",
 	entry: {
-		main: join(scramjetdir, "src/index.ts"),
+		main: join(kazedir, "src/index.ts"),
 	},
 	output: {
-		filename: "scramjet.js",
-		path: join(scramjetdir, "dist"),
+		filename: "kaze.js",
+		path: join(kazedir, "dist"),
 		iife: true,
 		library: {
 			type: "assign",
-			name: "self.$scramjet",
+			name: "self.$kaze",
 		},
 	},
 	rewriterWasm: "undefined",
@@ -363,19 +363,19 @@ const iifeConfig = createScramjetConfig({
 	},
 });
 
-// IIFE build that BUNDLES the wasm and exposes global $scramjet
-const iifeBundledConfig = createScramjetConfig({
-	name: "scramjet-iife-bundled",
+// IIFE build that BUNDLES the wasm and exposes global $kaze
+const iifeBundledConfig = createKazeConfig({
+	name: "kaze-iife-bundled",
 	entry: {
-		bundled: join(scramjetdir, "src/index.ts"),
+		bundled: join(kazedir, "src/index.ts"),
 	},
 	output: {
-		filename: "scramjet_bundled.js",
-		path: join(scramjetdir, "dist"),
+		filename: "kaze_bundled.js",
+		path: join(kazedir, "dist"),
 		iife: true,
 		library: {
 			type: "assign",
-			name: "self.$scramjet",
+			name: "self.$kaze",
 		},
 	},
 	rewriterWasm: JSON.stringify(wasmB64),
@@ -412,19 +412,19 @@ const knownCoreIssues: Pick<TsCheckerRspackPluginOptions, "issue"> = {
 // with tsc-alias to resolve path aliases in the generated .d.ts files.
 // Attached only to this build to avoid running a checker worker per config.
 iifeConfig.plugins!.push(
-	createTypeChecker(scramjetdir, knownCoreIssues),
-	new TscAliasRewritePlugin(join(scramjetdir, "tsconfig.types.json")),
+	createTypeChecker(kazedir, knownCoreIssues),
+	new TscAliasRewritePlugin(join(kazedir, "tsconfig.types.json"))
 );
 
 // no wasm bundled, esmodule
-const moduleConfig = createScramjetConfig({
-	name: "scramjet-esmodule",
+const moduleConfig = createKazeConfig({
+	name: "kaze-esmodule",
 	entry: {
-		bundle: join(scramjetdir, "src/index.ts"),
+		bundle: join(kazedir, "src/index.ts"),
 	},
 	output: {
-		filename: "scramjet.mjs",
-		path: join(scramjetdir, "dist"),
+		filename: "kaze.mjs",
+		path: join(kazedir, "dist"),
 		libraryTarget: "module",
 		iife: false,
 	},
@@ -441,22 +441,22 @@ const moduleConfig = createScramjetConfig({
 });
 moduleConfig.plugins!.push(
 	new ExternalStubPlugin({
-		bundleFilename: "scramjet.mjs",
-		stubFilename: "scramjet-external.mjs",
-		globalName: "$scramjet",
-		outputDir: join(scramjetdir, "dist"),
-	}),
+		bundleFilename: "kaze.mjs",
+		stubFilename: "kaze-external.mjs",
+		globalName: "$kaze",
+		outputDir: join(kazedir, "dist"),
+	})
 );
 
 // wasm bundled, esmodule
-const moduleBundledConfig = createScramjetConfig({
-	name: "scramjet-esmodule-bundled",
+const moduleBundledConfig = createKazeConfig({
+	name: "kaze-esmodule-bundled",
 	entry: {
-		bundle: join(scramjetdir, "src/index.ts"),
+		bundle: join(kazedir, "src/index.ts"),
 	},
 	output: {
-		filename: "scramjet_bundled.mjs",
-		path: join(scramjetdir, "dist"),
+		filename: "kaze_bundled.mjs",
+		path: join(kazedir, "dist"),
 		libraryTarget: "module",
 		iife: false,
 	},
@@ -473,16 +473,16 @@ const moduleBundledConfig = createScramjetConfig({
 
 const controllerdir = join(__dirname, "packages/controller");
 const controllermeta = JSON.parse(
-	await readFile(join(controllerdir, "package.json"), "utf-8"),
+	await readFile(join(controllerdir, "package.json"), "utf-8")
 );
 const controllerVersionDefines = new rspack.DefinePlugin({
-	SCRAMJET_EXPECTED_VERSION: JSON.stringify(scramjetmeta.version),
+	KAZE_EXPECTED_VERSION: JSON.stringify(kazemeta.version),
 	CONTROLLER_VERSION: JSON.stringify(controllermeta.version),
 });
 
 const controllerConfig = createGenericConfig(controllermeta, {
-	name: "scramjet-controller",
-	dependencies: ["scramjet-esmodule"],
+	name: "kaze-controller",
+	dependencies: ["kaze-esmodule"],
 	entry: {
 		api: join(controllerdir, "src/index.ts"),
 		inject: join(controllerdir, "src/inject.ts"),
@@ -494,7 +494,7 @@ const controllerConfig = createGenericConfig(controllermeta, {
 		iife: true,
 		library: {
 			type: "var",
-			name: "$scramjetController",
+			name: "$kazeController",
 		},
 	},
 	target: "web",
@@ -503,7 +503,7 @@ const controllerConfig = createGenericConfig(controllermeta, {
 		new ExternalStubPlugin({
 			bundleFilename: "controller.api.js",
 			stubFilename: "controller-external.mjs",
-			globalName: "$scramjetController",
+			globalName: "$kazeController",
 			outputDir: join(controllerdir, "dist"),
 		}),
 		createTypeChecker(controllerdir),
@@ -512,26 +512,26 @@ const controllerConfig = createGenericConfig(controllermeta, {
 
 const utilsdir = join(__dirname, "packages/utils");
 const utilsmeta = JSON.parse(
-	await readFile(join(utilsdir, "package.json"), "utf-8"),
+	await readFile(join(utilsdir, "package.json"), "utf-8")
 );
 const utilsVersionDefines = new rspack.DefinePlugin({
-	SCRAMJET_EXPECTED_VERSION: JSON.stringify(scramjetmeta.version),
+	KAZE_EXPECTED_VERSION: JSON.stringify(kazemeta.version),
 	CONTROLLER_EXPECTED_VERSION: JSON.stringify(controllermeta.version),
 });
 
 const utilsIifeConfig = createGenericConfig(utilsmeta, {
-	name: "scramjet-utils-iife",
-	dependencies: ["scramjet-esmodule", "scramjet-controller"],
+	name: "kaze-utils-iife",
+	dependencies: ["kaze-esmodule", "kaze-controller"],
 	entry: {
 		main: join(utilsdir, "src/index.ts"),
 	},
 	output: {
-		filename: "scramjet-utils.js",
+		filename: "kaze-utils.js",
 		path: join(utilsdir, "dist"),
 		iife: true,
 		library: {
 			type: "assign",
-			name: "self.$scramjetUtils",
+			name: "self.$kazeUtils",
 		},
 	},
 	target: "web",
@@ -539,13 +539,13 @@ const utilsIifeConfig = createGenericConfig(utilsmeta, {
 });
 
 const utilsModuleConfig = createGenericConfig(utilsmeta, {
-	name: "scramjet-utils-esmodule",
-	dependencies: ["scramjet-esmodule", "scramjet-controller"],
+	name: "kaze-utils-esmodule",
+	dependencies: ["kaze-esmodule", "kaze-controller"],
 	entry: {
 		main: join(utilsdir, "src/index.ts"),
 	},
 	output: {
-		filename: "scramjet-utils.mjs",
+		filename: "kaze-utils.mjs",
 		path: join(utilsdir, "dist"),
 		libraryTarget: "module",
 		iife: false,
@@ -559,11 +559,11 @@ const utilsModuleConfig = createGenericConfig(utilsmeta, {
 
 const bootstrapdir = join(__dirname, "packages/bootstrap");
 const bootstrapmeta = JSON.parse(
-	await readFile(join(bootstrapdir, "package.json"), "utf-8"),
+	await readFile(join(bootstrapdir, "package.json"), "utf-8")
 );
 const bootstrapConfig = createGenericConfig(bootstrapmeta, {
-	name: "scramjet-bootstrap",
-	dependencies: ["scramjet-controller"],
+	name: "kaze-bootstrap",
+	dependencies: ["kaze-controller"],
 	entry: {
 		server: join(bootstrapdir, "src/server.ts"),
 		client: join(bootstrapdir, "src/client.ts"),
@@ -590,8 +590,8 @@ const bootstrapConfig = createGenericConfig(bootstrapmeta, {
 });
 
 const bootstrapStaticConfig = createGenericConfig(bootstrapmeta, {
-	name: "scramjet-bootstrap-static",
-	dependencies: ["scramjet-controller"],
+	name: "kaze-bootstrap-static",
+	dependencies: ["kaze-controller"],
 	entry: {
 		static: join(bootstrapdir, "src/static.ts"),
 	},
@@ -604,7 +604,7 @@ const bootstrapStaticConfig = createGenericConfig(bootstrapmeta, {
 
 const createproxyappdir = join(__dirname, "packages/create-proxy-app");
 const createproxyappmeta = JSON.parse(
-	await readFile(join(createproxyappdir, "package.json"), "utf-8"),
+	await readFile(join(createproxyappdir, "package.json"), "utf-8")
 );
 const createProxyAppConfig = createGenericConfig(createproxyappmeta, {
 	name: "create-proxy-app",

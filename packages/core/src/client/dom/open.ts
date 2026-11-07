@@ -1,8 +1,8 @@
-import { ScramjetClient } from "@client/index";
-import { SCRAMJETCLIENT } from "@/symbols";
+import { KazeClient } from "@client/index";
+import { KAZECLIENT } from "@/symbols";
 import { String } from "@/shared/snapshot";
 
-export default function (client: ScramjetClient) {
+export default function (client: KazeClient) {
 	client.Proxy("window.open", {
 		apply(ctx) {
 			// undefined opens an about:blank window, pass through
@@ -32,8 +32,8 @@ export default function (client: ScramjetClient) {
 
 			if (!realwin) return ctx.return(realwin);
 
-			if (!(SCRAMJETCLIENT in realwin)) {
-				// i don't believe it's possible for a just-opened window to already have scramjet loaded but just in case
+			if (!(KAZECLIENT in realwin)) {
+				// i don't believe it's possible for a just-opened window to already have kaze loaded but just in case
 				client.init.hookSubcontext(realwin);
 			}
 
@@ -47,8 +47,8 @@ export default function (client: ScramjetClient) {
 			if (!f) return f;
 
 			const win = f.ownerDocument.defaultView;
-			if (win[SCRAMJETCLIENT]) {
-				// then this is a subframe in a scramjet context, and it's safe to pass back the real iframe
+			if (win[KAZECLIENT]) {
+				// then this is a subframe in a kaze context, and it's safe to pass back the real iframe
 				return f;
 			} else {
 				// no, the top frame is outside the sandbox

@@ -1,12 +1,11 @@
 export const REGISTRY_URL = "https://registry.npmjs.org/";
-export const SCRAMJET_PACKAGE_NAME = "@mercuryworkshop/scramjet";
+export const KAZE_PACKAGE_NAME = "@kaze/core";
 
-export const SCRAMJET_CONTROLLER_PACKAGE_NAME =
-	"@mercuryworkshop/scramjet-controller";
-export const SCRAMJET_CONTROLLER_PINNED_MAJOR_VERSION = "0";
+export const KAZE_CONTROLLER_PACKAGE_NAME = "@kaze/controller";
+export const KAZE_CONTROLLER_PINNED_MAJOR_VERSION = "0";
 
-export const SCRAMJET_UTILS_PACKAGE_NAME = "@mercuryworkshop/scramjet-utils";
-export const SCRAMJET_UTILS_PINNED_MAJOR_VERSION = "0";
+export const KAZE_UTILS_PACKAGE_NAME = "@kaze/utils";
+export const KAZE_UTILS_PINNED_MAJOR_VERSION = "0";
 
 export const EPOXY_TRANSPORT_PACKAGE_NAME = "@mercuryworkshop/epoxy-transport";
 export const EPOXY_TRANSPORT_PINNED_MAJOR_VERSION = "3";
@@ -23,23 +22,23 @@ export type BootstrapOptions = {
 
 	wispPath: string;
 
-	scramjetBundlePath: string;
-	scramjetWasmPath: string;
-	scramjetUtilsBundlePath: string;
+	kazeBundlePath: string;
+	kazeWasmPath: string;
+	kazeUtilsBundlePath: string;
 
 	epoxyClientPath: string;
 	libcurlClientPath: string;
 	bareClientPath: string;
-	scramjetControllerApiPath: string;
-	scramjetControllerInjectPath: string;
-	scramjetControllerSwPath: string;
+	kazeControllerApiPath: string;
+	kazeControllerInjectPath: string;
+	kazeControllerSwPath: string;
 
 	bootstrapApiPath: string;
 	bootstrapInitPath: string;
 
-	scramjetVersionPin?: string;
-	scramjetControllerVersionPin?: string;
-	scramjetUtilsVersionPin?: string;
+	kazeVersionPin?: string;
+	kazeControllerVersionPin?: string;
+	kazeUtilsVersionPin?: string;
 	epoxyTransportVersionPin?: string;
 	libcurlTransportVersionPin?: string;
 	bareTransportVersionPin?: string;
@@ -55,10 +54,10 @@ export const defaultConfig: Partial<BootstrapOptions> = {
 	bareClientPath: "/clients/bare-client.js",
 	bootstrapInitPath: "/bootstrap-init.js",
 
-	scramjetControllerApiPath: "/controller/controller.api.js",
-	scramjetControllerInjectPath: "/controller/controller.inject.js",
-	scramjetControllerSwPath: "/controller/controller.sw.js",
-	scramjetBundlePath: "/scram/scramjet.js",
-	scramjetWasmPath: "/scram/scramjet.wasm",
-	scramjetUtilsBundlePath: "/scram/scramjet-utils.js",
+	kazeControllerApiPath: "/controller/controller.api.js",
+	kazeControllerInjectPath: "/controller/controller.inject.js",
+	kazeControllerSwPath: "/controller/controller.sw.js",
+	kazeBundlePath: "/scram/kaze.js",
+	kazeWasmPath: "/scram/kaze.wasm",
+	kazeUtilsBundlePath: "/scram/kaze-utils.js",
 };

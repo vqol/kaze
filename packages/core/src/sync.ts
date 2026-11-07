@@ -1,4 +1,4 @@
-/* eslint-disable scramjet-core/no-globals */
+/* eslint-disable kaze-core/no-globals */
 
 addEventListener(
 	"message",

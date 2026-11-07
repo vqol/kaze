@@ -1,8 +1,8 @@
 import { flagEnabled } from "@/shared";
-import { ScramjetClient } from "@client/index";
+import { KazeClient } from "@client/index";
 import { Reflect_apply } from "@/shared/snapshot";
 
-export const enabled = (client: ScramjetClient) =>
+export const enabled = (client: KazeClient) =>
 	client.flagEnabled("captureErrors");
 export function argdbg(arg, recurse = []) {
 	switch (typeof arg) {
@@ -28,7 +28,7 @@ export function argdbg(arg, recurse = []) {
 	}
 }
 
-export default function (client: ScramjetClient, self: GlobalThis) {
+export default function (client: KazeClient, self: GlobalThis) {
 	const warn = console.warn;
 	self.$scramerr = function scramerr(e) {
 		warn("CAUGHT ERROR", e);

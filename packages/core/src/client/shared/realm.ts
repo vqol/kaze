@@ -1,13 +1,13 @@
-import { ScramjetClient } from "@client/index";
+import { KazeClient } from "@client/index";
 import { Object_defineProperty, Symbol_for } from "@/shared/snapshot";
 
-export const POLLUTANT = Symbol_for("scramjet realm pollutant");
+export const POLLUTANT = Symbol_for("kaze realm pollutant");
 
-export default function (client: ScramjetClient, self: GlobalThis) {
+export default function (client: KazeClient, self: GlobalThis) {
 	// object.$setrealm({}).postMessage(...)
 	// the empty object is the "pollutant" which can reconstruct the real realm
 	// i explain more in postmessage.ts
-	Object_defineProperty(self.Object.prototype, "$scramjet$setrealmfn", {
+	Object_defineProperty(self.Object.prototype, "$kaze$setrealmfn", {
 		value(pollution: object) {
 			// this is bad!! sites could detect this
 			Object_defineProperty(this, POLLUTANT, {

@@ -1,0 +1,6 @@
+#!/bin/sh
+# format staged files with the repo's prettier style, then re-stage them
+files=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '\.(ts|tsx|js|mjs|cjs|json|css|html|md|yaml|yml)$' | grep -v 'pnpm-lock.yaml')
+[ -z "$files" ] && exit 0
+echo "$files" | tr '\n' '\0' | xargs -0 npx --no-install prettier --trailing-comma es5 --ignore-unknown --write >/dev/null || exit 1
+echo "$files" | tr '\n' '\0' | xargs -0 git add

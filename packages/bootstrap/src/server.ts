@@ -11,11 +11,11 @@ import {
 	LIBCURL_TRANSPORT_PACKAGE_NAME,
 	LIBCURL_TRANSPORT_PINNED_MAJOR_VERSION,
 	REGISTRY_URL,
-	SCRAMJET_CONTROLLER_PACKAGE_NAME,
-	SCRAMJET_CONTROLLER_PINNED_MAJOR_VERSION,
-	SCRAMJET_PACKAGE_NAME,
-	SCRAMJET_UTILS_PACKAGE_NAME,
-	SCRAMJET_UTILS_PINNED_MAJOR_VERSION,
+	KAZE_CONTROLLER_PACKAGE_NAME,
+	KAZE_CONTROLLER_PINNED_MAJOR_VERSION,
+	KAZE_PACKAGE_NAME,
+	KAZE_UTILS_PACKAGE_NAME,
+	KAZE_UTILS_PINNED_MAJOR_VERSION,
 	BootstrapOptions,
 } from "./common";
 
@@ -47,10 +47,10 @@ function routeRequest(
 
 	if (req.url === config.swPath) {
 		res.writeHead(200, { "Content-Type": "application/javascript" });
-		res.end(`importScripts("${config.scramjetControllerSwPath}");
+		res.end(`importScripts("${config.kazeControllerSwPath}");
 addEventListener("fetch", (e) => {
-	if ($scramjetController.shouldRoute(e)) {
-		e.respondWith($scramjetController.route(e));
+	if ($kazeController.shouldRoute(e)) {
+		e.respondWith($kazeController.route(e));
 	}
 });
 `);
@@ -67,20 +67,19 @@ addEventListener("fetch", (e) => {
 	}
 
 	const pathsToFiles = {
-		[config.scramjetControllerApiPath]:
+		[config.kazeControllerApiPath]:
 			config.downloadedFilesDir + "controller/package/dist/controller.api.js",
-		[config.scramjetControllerInjectPath]:
+		[config.kazeControllerInjectPath]:
 			config.downloadedFilesDir +
 			"controller/package/dist/controller.inject.js",
-		[config.scramjetControllerSwPath]:
+		[config.kazeControllerSwPath]:
 			config.downloadedFilesDir + "controller/package/dist/controller.sw.js",
-		[config.scramjetBundlePath]:
-			config.downloadedFilesDir + "scramjet/package/dist/scramjet.js",
-		[config.scramjetWasmPath]:
-			config.downloadedFilesDir + "scramjet/package/dist/scramjet.wasm",
-		[config.scramjetUtilsBundlePath]:
-			config.downloadedFilesDir +
-			"scramjet-utils/package/dist/scramjet-utils.js",
+		[config.kazeBundlePath]:
+			config.downloadedFilesDir + "kaze/package/dist/kaze.js",
+		[config.kazeWasmPath]:
+			config.downloadedFilesDir + "kaze/package/dist/kaze.wasm",
+		[config.kazeUtilsBundlePath]:
+			config.downloadedFilesDir + "kaze-utils/package/dist/kaze-utils.js",
 
 		[config.libcurlClientPath]:
 			config.downloadedFilesDir + "libcurl-transport/package/dist/index.js",
@@ -160,17 +159,16 @@ async function getDownloadedPackageVersion(
 	}
 }
 
-async function updateScramjet(controllerMeta: any) {
-	const scramjetVersion =
-		controllerMeta.devDependencies["@mercuryworkshop/scramjet"];
+async function updateKaze(controllerMeta: any) {
+	const kazeVersion = controllerMeta.devDependencies["@kaze/core"];
 
-	console.log(`Fetching scramjet version: ${scramjetVersion}`);
-	const scramjetRes = await fetch(
-		`${REGISTRY_URL}${SCRAMJET_PACKAGE_NAME}/${scramjetVersion}`
+	console.log(`Fetching kaze version: ${kazeVersion}`);
+	const kazeRes = await fetch(
+		`${REGISTRY_URL}${KAZE_PACKAGE_NAME}/${kazeVersion}`
 	);
-	const scramjetMeta = await scramjetRes.json();
+	const kazeMeta = await kazeRes.json();
 
-	await unpack(scramjetMeta.dist.tarball, "scramjet");
+	await unpack(kazeMeta.dist.tarball, "kaze");
 	await unpack(controllerMeta.dist.tarball, "controller");
 }
 
@@ -232,7 +230,7 @@ export async function bootstrap(
 		await getDownloadedPackageVersion("controller");
 	if (downloadedControllerVersion) {
 		console.log(
-			`Found downloaded Scramjet Controller version: ${downloadedControllerVersion}`
+			`Found downloaded Kaze Controller version: ${downloadedControllerVersion}`
 		);
 	}
 
@@ -255,34 +253,34 @@ export async function bootstrap(
 	}
 
 	const controllerMeta = await findLatestVersionOfPackage(
-		SCRAMJET_CONTROLLER_PACKAGE_NAME,
-		SCRAMJET_CONTROLLER_PINNED_MAJOR_VERSION
+		KAZE_CONTROLLER_PACKAGE_NAME,
+		KAZE_CONTROLLER_PINNED_MAJOR_VERSION
 	);
 
 	if (downloadedControllerVersion === controllerMeta.version) {
 		console.log(
-			`Scramjet Controller is up to date (version: ${downloadedControllerVersion}), skipping download.`
+			`Kaze Controller is up to date (version: ${downloadedControllerVersion}), skipping download.`
 		);
 	} else {
-		await updateScramjet(controllerMeta);
+		await updateKaze(controllerMeta);
 		console.log(
-			`Downloaded Scramjet Controller version: ${controllerMeta.version}`
+			`Downloaded Kaze Controller version: ${controllerMeta.version}`
 		);
 	}
 
 	const downloadedUtilsVersion =
-		await getDownloadedPackageVersion("scramjet-utils");
+		await getDownloadedPackageVersion("kaze-utils");
 	const utilsMeta = await findLatestVersionOfPackage(
-		SCRAMJET_UTILS_PACKAGE_NAME,
-		SCRAMJET_UTILS_PINNED_MAJOR_VERSION
+		KAZE_UTILS_PACKAGE_NAME,
+		KAZE_UTILS_PINNED_MAJOR_VERSION
 	);
 	if (downloadedUtilsVersion === utilsMeta.version) {
 		console.log(
-			`Scramjet Utils is up to date (version: ${downloadedUtilsVersion}), skipping download.`
+			`Kaze Utils is up to date (version: ${downloadedUtilsVersion}), skipping download.`
 		);
 	} else {
-		await unpack(utilsMeta.dist.tarball, "scramjet-utils");
-		console.log(`Downloaded Scramjet Utils version: ${utilsMeta.version}`);
+		await unpack(utilsMeta.dist.tarball, "kaze-utils");
+		console.log(`Downloaded Kaze Utils version: ${utilsMeta.version}`);
 	}
 
 	return {

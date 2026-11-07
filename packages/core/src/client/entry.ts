@@ -1,9 +1,9 @@
-// entrypoint for scramjet.client.js
+// entrypoint for kaze.client.js
 
-import { ScramjetContext, ScramjetInterface } from "@/shared/index";
-import { SCRAMJETCLIENT } from "@/symbols";
-import { ScramjetClient } from "@client/index";
-import { ScramjetConfig } from "@/types";
+import { KazeContext, KazeInterface } from "@/shared/index";
+import { KAZECLIENT } from "@/symbols";
+import { KazeClient } from "@client/index";
+import { KazeConfig } from "@/types";
 
 export const iswindow = "window" in globalThis && window instanceof Window;
 export const isworker = "WorkerGlobalScope" in globalThis;

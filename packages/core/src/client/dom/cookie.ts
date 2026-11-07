@@ -1,6 +1,6 @@
-import { ScramjetClient } from "@client/index";
+import { KazeClient } from "@client/index";
 
-export default function (client: ScramjetClient, self: Self) {
+export default function (client: KazeClient, self: Self) {
 	client.Trap("Document.prototype.cookie", {
 		get() {
 			return client.context.cookieJar.getCookies(client.url, true);

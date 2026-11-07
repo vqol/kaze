@@ -1,5 +1,5 @@
 name: Spec Divergence
-description: Report behavior in Scramjet that diverges from a web specification
+description: Report behavior in Kaze that diverges from a web specification
 labels: ["spec divergence"]
 title: "[spec divergence] "
 body:
@@ -13,22 +13,22 @@ body:
     id: version
     attributes:
       label: Version
-      description: Can be copied from scramjet://about or through the web console with `$scramjet.versionInfo.version`
+      description: Can be copied from kaze://about or through the web console with `$kaze.versionInfo.version`
     validations:
       required: true
   - type: input
     id: Build
     attributes:
       label: Build
-      description: Can be copied from scramjet://about or through the web console with `$scramjet.versionInfo.build`
+      description: Can be copied from kaze://about or through the web console with `$kaze.versionInfo.build`
     validations:
       required: true
   - type: checkboxes
     attributes:
       label: Have you tested that this is not an upstream issue or an issue with your configuration?
       options:
-        - label: I have tried reproducing this issue in the Scramjet Demo and it could be reproduced there
-        - label: I have confirmed this behavior does not occur in the same browser without Scramjet
+        - label: I have tried reproducing this issue in the Kaze Demo and it could be reproduced there
+        - label: I have confirmed this behavior does not occur in the same browser without Kaze
   - type: input
     id: description
     attributes:
@@ -63,7 +63,7 @@ body:
     id: actual
     attributes:
       label: Actual behavior
-      description: What Scramjet actually does
+      description: What Kaze actually does
     validations:
       required: true
   - type: textarea

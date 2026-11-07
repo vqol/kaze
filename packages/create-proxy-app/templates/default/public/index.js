@@ -1,21 +1,21 @@
-const form = document.getElementById("sj-form");
-const address = document.getElementById("sj-address");
-const frameWrapper = document.getElementById("sj-frame-wrapper");
-const frameElement = document.getElementById("sj-frame");
-const frameUrl = document.getElementById("sj-frame-url");
-const error = document.getElementById("sj-error");
-const errorCode = document.getElementById("sj-error-code");
+const form = document.getElementById("kz-form");
+const address = document.getElementById("kz-address");
+const frameWrapper = document.getElementById("kz-frame-wrapper");
+const frameElement = document.getElementById("kz-frame");
+const frameUrl = document.getElementById("kz-frame-url");
+const error = document.getElementById("kz-error");
+const errorCode = document.getElementById("kz-error-code");
 
 let controller;
 let frame;
 async function init() {
 	controller = await initBootstrap();
 
-	const cachePlugin = new $scramjetUtils.HttpCachePlugin();
-	const urlWatcher = new $scramjetUtils.UrlWatcherPlugin((url) => {
+	const cachePlugin = new $kazeUtils.HttpCachePlugin();
+	const urlWatcher = new $kazeUtils.UrlWatcherPlugin((url) => {
 		frameUrl.textContent = url;
 	});
-	const catchEscapedLinks = new $scramjetUtils.CatchEscapedLinksPlugin(
+	const catchEscapedLinks = new $kazeUtils.CatchEscapedLinksPlugin(
 		(url) => new URL(`/?goto=${encodeURIComponent(url.href)}`, location.origin)
 	);
 

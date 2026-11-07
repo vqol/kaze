@@ -5,5 +5,5 @@
 
 import { Symbol_for } from "@/shared/snapshot";
 
-export const SCRAMJETCLIENTNAME = "scramjet client global";
-export const SCRAMJETCLIENT = Symbol_for(SCRAMJETCLIENTNAME);
+export const KAZECLIENTNAME = "kaze client global";
+export const KAZECLIENT = Symbol_for(KAZECLIENTNAME);

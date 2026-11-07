@@ -3,15 +3,15 @@ import type { URLMeta } from "@rewriters/url";
 import { Error, Math_min, Performance_now } from "@/shared/snapshot";
 
 const logfuncs = {
-	// eslint-disable-next-line scramjet-core/no-globals
+	// eslint-disable-next-line kaze-core/no-globals
 	log: console.log,
-	// eslint-disable-next-line scramjet-core/no-globals
+	// eslint-disable-next-line kaze-core/no-globals
 	warn: console.warn,
-	// eslint-disable-next-line scramjet-core/no-globals
+	// eslint-disable-next-line kaze-core/no-globals
 	error: console.error,
-	// eslint-disable-next-line scramjet-core/no-globals
+	// eslint-disable-next-line kaze-core/no-globals
 	debug: console.debug,
-	// eslint-disable-next-line scramjet-core/no-globals
+	// eslint-disable-next-line kaze-core/no-globals
 	info: console.info,
 };
 

@@ -44,7 +44,7 @@ const noGlobalsPlugin = {
 				],
 				messages: {
 					unexpectedGlobal:
-						"Do not use runtime global '{{name}}'. Access it through scramjet wrappers instead.",
+						"Do not use runtime global '{{name}}'. Access it through kaze wrappers instead.",
 				},
 			},
 			create(context) {

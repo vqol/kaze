@@ -1,5 +1,5 @@
 {
-	"name": "@mercuryworkshop/scramjet-controller",
+	"name": "@kaze/controller",
 	"version": "0.0.14",
 	"type": "module",
 	"packageManager": "pnpm@10.12.1",
@@ -13,7 +13,7 @@
 		"directory": "packages/controller"
 	},
 	"scripts": {
-		"build": "cd ../.. && rspack build --mode production --config-name scramjet-esmodule --config-name scramjet-controller",
+		"build": "cd ../.. && rspack build --mode production --config-name kaze-esmodule --config-name kaze-controller",
 		"prepack": "pnpm build"
 	},
 	"exports": {
@@ -27,15 +27,15 @@
 		}
 	},
 	"peerDependencies": {
-		"@mercuryworkshop/scramjet": "*"
+		"@kaze/core": "*"
 	},
 	"dependencies": {
 		"@fastify/deepmerge": "^3.2.1",
 		"@mercuryworkshop/proxy-transports": "catalog:"
 	},
 	"devDependencies": {
-		"@mercuryworkshop/scramjet": "workspace:*",
+		"@kaze/core": "workspace:*",
 		"@types/serviceworker": "^0.0.197",
-		"@mercuryworkshop/rpc": "workspace:*"
+		"@kaze/rpc": "workspace:*"
 	}
 }

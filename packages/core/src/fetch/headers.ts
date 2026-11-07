@@ -1,15 +1,11 @@
 import {
 	rewriteUrl,
-	ScramjetContext,
-	ScramjetHeaders,
+	KazeContext,
+	KazeHeaders,
 	unrewriteUrl,
 	URLMeta,
 } from "@/shared";
-import {
-	ScramjetFetchHandler,
-	ScramjetFetchParsed,
-	ScramjetFetchRequest,
-} from ".";
+import { KazeFetchHandler, KazeFetchParsed, KazeFetchRequest } from ".";
 import { RawHeaders } from "@mercuryworkshop/proxy-transports";
 import { _URL, _Set } from "@/shared/snapshot";
 import { createReferrerString } from "./util";
@@ -48,23 +44,19 @@ const URL_HEADERS = new _Set([
 	"referer",
 ]) as _Set<string>;
 
-function rewriteLinkHeader(
-	link: string,
-	context: ScramjetContext,
-	meta: URLMeta
-) {
+function rewriteLinkHeader(link: string, context: KazeContext, meta: URLMeta) {
 	return link.replace(/<([^>]+)>/gi, (_match, p1) => {
 		return `<${rewriteUrl(p1, context, meta)}>`;
 	});
 }
 
 export async function rewriteResponseHeaders(
-	handler: ScramjetFetchHandler,
-	request: ScramjetFetchRequest,
-	parsed: ScramjetFetchParsed,
+	handler: KazeFetchHandler,
+	request: KazeFetchRequest,
+	parsed: KazeFetchParsed,
 	rawHeaders: RawHeaders
-): Promise<ScramjetHeaders> {
-	const headers = ScramjetHeaders.fromRawHeaders(rawHeaders);
+): Promise<KazeHeaders> {
+	const headers = KazeHeaders.fromRawHeaders(rawHeaders);
 
 	for (const cspHeader of SEC_HEADERS) {
 		headers.delete(cspHeader);
@@ -88,7 +80,7 @@ export async function rewriteResponseHeaders(
 		headers.set("content-type", "text/event-stream");
 	}
 
-	// scramjet runtime can use features that permissions-policy blocks
+	// kaze runtime can use features that permissions-policy blocks
 	headers.delete("permissions-policy");
 
 	// we handle this ourselves
@@ -117,13 +109,13 @@ export async function rewriteResponseHeaders(
 }
 
 export function rewriteRequestHeaders(
-	request: ScramjetFetchRequest,
-	handler: ScramjetFetchHandler,
-	parsed: ScramjetFetchParsed
-): ScramjetHeaders {
+	request: KazeFetchRequest,
+	handler: KazeFetchHandler,
+	parsed: KazeFetchParsed
+): KazeHeaders {
 	const headers = request.initialHeaders.clone();
 
-	// avoid leaking the scramjet referer
+	// avoid leaking the kaze referer
 	headers.delete("Referer");
 
 	const rawOriginUrl =
@@ -181,10 +173,10 @@ export function rewriteRequestHeaders(
  * to plain http:// non-loopback destinations.
  */
 function applyFetchMetadataHeaders(
-	headers: ScramjetHeaders,
-	request: ScramjetFetchRequest,
-	parsed: ScramjetFetchParsed,
-	handler: ScramjetFetchHandler
+	headers: KazeHeaders,
+	request: KazeFetchRequest,
+	parsed: KazeFetchParsed,
+	handler: KazeFetchHandler
 ) {
 	// Strip browser-attached Sec-Fetch-* (computed from the proxy URL space).
 	headers.delete("sec-fetch-site");
@@ -219,7 +211,7 @@ function applyFetchMetadataHeaders(
 	// Sec-Fetch-Mode: the request's mode. `event.request.mode` from the SW is
 	// computed against the proxy URL space (always same-origin to the page) so
 	// it's not safe to trust for fetch / Request API calls; we prefer the
-	// `sj$mode` value the client-side proxy stamped onto the URL when present
+	// `kz$mode` value the client-side proxy stamped onto the URL when present
 	// and fall back to a destination-based default for everything else.
 	headers.set("Sec-Fetch-Mode", computeFetchMode(request, parsed));
 
@@ -258,7 +250,7 @@ function applyFetchMetadataHeaders(
 	// access through the proxy, so the value is always "none" when sent.
 	//
 	// `event.request.credentials` inside a service worker isn't reliable, so we
-	// rely on signals propagated from the page (the `sj$cred` URL param set by
+	// rely on signals propagated from the page (the `kz$cred` URL param set by
 	// the client-side fetch proxy) plus destination-based defaults for request
 	// types that always include credentials.
 	if (site === "cross-site" && requestIncludesCredentials(request, parsed)) {
@@ -272,18 +264,18 @@ function applyFetchMetadataHeaders(
  * can't be trusted in a service worker context, so we reconstruct the answer
  * from:
  *
- * - the `sj$cred` URL parameter, set by the client-side fetch proxy when the
+ * - the `kz$cred` URL parameter, set by the client-side fetch proxy when the
  *   page used `fetch(url, { credentials: "include" })`; and
  * - destination-based defaults: most resource fetches (img, script, style,
  *   link, video, audio, track, document/iframe navigations, etc.) default to
  *   credentials mode "include" unless the page explicitly opts out via a
  *   `crossorigin` attribute we can't observe from here. fetch() / XHR
  *   default to "same-origin", so we treat them as non-credentialed unless
- *   `sj$cred` says otherwise.
+ *   `kz$cred` says otherwise.
  */
 function requestIncludesCredentials(
-	request: ScramjetFetchRequest,
-	parsed: ScramjetFetchParsed
+	request: KazeFetchRequest,
+	parsed: KazeFetchParsed
 ): boolean {
 	if (parsed.fetchCredentialsInclude) return true;
 	const dest = parsed.destination;
@@ -306,7 +298,7 @@ function requestIncludesCredentials(
  *
  * The browser's `event.request.mode` reported in the SW is unsafe to trust
  * for `fetch()` / `new Request()` calls — those compute mode against the
- * request URL's relationship to the page, and scramjet has rewritten the URL
+ * request URL's relationship to the page, and kaze has rewritten the URL
  * to be same-origin to the page, so the SW always sees "same-origin"
  * regardless of the page's actual `init.mode`. For HTML resource fetches
  * (`<script crossorigin>`, `<img crossorigin>`, …) the mode is derived from
@@ -325,8 +317,8 @@ function requestIncludesCredentials(
  *      proxy-URL computation).
  */
 function computeFetchMode(
-	request: ScramjetFetchRequest,
-	parsed: ScramjetFetchParsed
+	request: KazeFetchRequest,
+	parsed: KazeFetchParsed
 ): string {
 	if (parsed.fetchMode) return parsed.fetchMode;
 	const dest = parsed.destination;
@@ -347,7 +339,7 @@ function computeFetchMode(
 	// element's CORS attribute (`<script crossorigin>` ⇒ "cors", plain
 	// `<script>` ⇒ "no-cors"), so trust it. Reject "same-origin"/"navigate"
 	// since those indicate the value came from URL-origin matching against
-	// scramjet's proxy origin and is meaningless to the destination.
+	// kaze's proxy origin and is meaningless to the destination.
 	if (request.mode === "cors" || request.mode === "no-cors") {
 		return request.mode;
 	}
@@ -360,9 +352,9 @@ function computeFetchMode(
  * initiator regardless of Referer policy.
  */
 function resolveFetchInitiatorUrl(
-	request: ScramjetFetchRequest,
-	parsed: ScramjetFetchParsed,
-	handler: ScramjetFetchHandler
+	request: KazeFetchRequest,
+	parsed: KazeFetchParsed,
+	handler: KazeFetchHandler
 ): URL | undefined {
 	// On any hop after the first, the propagated initiator origin is the
 	// authoritative source. rawReferrer may have been replaced with the
@@ -381,7 +373,7 @@ function resolveFetchInitiatorUrl(
 	if (candidate.pathname.startsWith(handler.context.prefix.pathname)) {
 		return new _URL(unrewriteUrl(candidate, handler.context));
 	}
-	// The candidate URL is outside scramjet's logical space (e.g. the runway
+	// The candidate URL is outside kaze's logical space (e.g. the runway
 	// harness wrapper page, or a chrome:// page kicking off a navigation).
 	// There's no meaningful "initiator" in the proxied site's frame of
 	// reference, so treat it as a browser-initiated request — Sec-Fetch-Site
@@ -472,8 +464,8 @@ export function worstFetchSite(
  * "cross-site" – cross-site subresource or non-safe-method navigation (block Strict+Lax)
  */
 function computeSameSiteContext(
-	request: ScramjetFetchRequest,
-	parsed: ScramjetFetchParsed,
+	request: KazeFetchRequest,
+	parsed: KazeFetchParsed,
 	rawOriginUrl: URL | undefined
 ): "strict" | "lax" | "cross-site" {
 	// If a redirect chain previously passed through a cross-site origin, the

@@ -5,9 +5,9 @@ import {
 	ArrayBuffer_isView,
 	_Uint8Array,
 } from "@/shared/snapshot";
-import { SCRAMJETCLIENT, SCRAMJETCLIENTNAME } from "@/symbols";
+import { KAZECLIENT, KAZECLIENTNAME } from "@/symbols";
 import { base64ToBytes } from "@/shared/util";
-import { ProxyCtx, ScramjetClient } from "@client/index";
+import { ProxyCtx, KazeClient } from "@client/index";
 
 enum RewriteType {
 	Insert = 0,
@@ -42,10 +42,7 @@ function getEnd(rewrite: Rewrite): number {
 	throw "unreachable";
 }
 
-function getRewrites(
-	client: ScramjetClient,
-	tag: string
-): Rewrite[] | undefined {
+function getRewrites(client: KazeClient, tag: string): Rewrite[] | undefined {
 	const entry = client.box.sourcemaps[tag];
 	if (entry === undefined) return undefined;
 	if (
@@ -117,7 +114,7 @@ function extractTag(fn: string): [string, number, number] | null {
 	// function name()[possible whitespace]/*scramtag [index] [tag]*/[possible whitespace]{ ... }
 
 	const start = fn.indexOf(SCRAMTAG);
-	// no scramtag, probably native function or stolen from scramjet
+	// no scramtag, probably native function or stolen from kaze
 	if (start === -1) return null;
 
 	const end = fn.indexOf("*/", start);
@@ -141,7 +138,7 @@ function extractTag(fn: string): [string, number, number] | null {
 }
 
 function doUnrewrite(
-	client: ScramjetClient,
+	client: KazeClient,
 	ctx: ProxyCtx<"Function.prototype.toString", "apply">
 ) {
 	const stringified: string = ctx.fn.call(ctx.this);
@@ -197,8 +194,8 @@ function doUnrewrite(
 }
 
 // always installed: besides unrewriting, the toString trap below is what keeps
-// scramjet's proxies of native functions stringifying as native code
-export default function (client: ScramjetClient, self: Self) {
+// kaze's proxies of native functions stringifying as native code
+export default function (client: KazeClient, self: Self) {
 	const sourcemaps = client.flagEnabled("sourcemaps");
 	// every script will push a sourcemap
 	Object_defineProperty(self, client.config.globals.pushsourcemapfn, {

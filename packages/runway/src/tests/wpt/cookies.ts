@@ -1037,7 +1037,7 @@ function cookiePageTest(entryPath: string): Test {
 		port: 0,
 		scheme: "http",
 		path: basePath,
-		scramjetOnly: true,
+		kazeOnly: true,
 		reloadHarness: true,
 		timeoutMs: 90000,
 		async start({ pass, fail }) {

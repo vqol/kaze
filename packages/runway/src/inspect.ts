@@ -109,7 +109,7 @@ async function main() {
 
 	// Start the harness server
 	const { startHarness, PORT: HARNESS_PORT } = await import(
-		"./harness/scramjet/index.ts"
+		"./harness/kaze/index.ts"
 	);
 	await startHarness();
 	const harnessUrl = `http://localhost:${HARNESS_PORT}`;
@@ -212,7 +212,7 @@ async function main() {
 			}
 		);
 
-		if (firstTest.topLevelScramjet) {
+		if (firstTest.topLevelKaze) {
 			const proxiedUrl = await page.evaluate((url) => {
 				if (typeof (window as any).__runwayGetProxiedUrl === "function") {
 					return (window as any).__runwayGetProxiedUrl(url);
@@ -236,7 +236,7 @@ async function main() {
 				}
 			}, proxiedUrl);
 
-			console.log(`🌐 Opening top-level Scramjet page: ${proxiedUrl}`);
+			console.log(`🌐 Opening top-level Kaze page: ${proxiedUrl}`);
 			await page.goto(proxiedUrl, { waitUntil: "commit" });
 		} else {
 			await page.evaluate((url) => {

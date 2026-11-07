@@ -1,0 +1,456 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>kaze</title>
+		<script src="/kaze/kaze.js"></script>
+		<script src="/controller/controller.api.js"></script>
+		<script src="/libcurl/index.js"></script>
+		<style>
+			:root {
+				--bg: #000;
+				--fg: #fff;
+				--dim: #6b6b6b;
+				--line: #262626;
+			}
+			* {
+				box-sizing: border-box;
+			}
+			html,
+			body {
+				margin: 0;
+				height: 100%;
+				background: var(--bg);
+				color: var(--fg);
+				font-family:
+					"Inter",
+					ui-sans-serif,
+					system-ui,
+					-apple-system,
+					"Segoe UI",
+					sans-serif;
+				-webkit-font-smoothing: antialiased;
+			}
+
+			/* home */
+			#home {
+				position: fixed;
+				inset: 0;
+				display: flex;
+				flex-direction: column;
+				align-items: center;
+				justify-content: center;
+				gap: 36px;
+				padding: 0 20px;
+				transition:
+					opacity 0.35s ease,
+					transform 0.35s ease;
+			}
+			body.browsing #home {
+				opacity: 0;
+				transform: scale(0.98);
+				pointer-events: none;
+			}
+			h1 {
+				margin: 0;
+				font-size: clamp(56px, 11vw, 112px);
+				font-weight: 200;
+				letter-spacing: 0.32em;
+				margin-right: -0.32em; /* optically recenter tracked text */
+				line-height: 1;
+				user-select: none;
+			}
+			form.search {
+				position: relative;
+				width: min(560px, 100%);
+			}
+			form.search input {
+				width: 100%;
+				height: 52px;
+				padding: 0 52px 0 22px;
+				background: transparent;
+				color: var(--fg);
+				border: 1px solid var(--line);
+				border-radius: 999px;
+				font: inherit;
+				font-size: 15px;
+				letter-spacing: 0.01em;
+				outline: none;
+				transition:
+					border-color 0.2s ease,
+					background 0.2s ease;
+			}
+			form.search input::placeholder {
+				color: var(--dim);
+			}
+			form.search input:hover {
+				border-color: #3a3a3a;
+			}
+			form.search input:focus {
+				border-color: var(--fg);
+				background: #0a0a0a;
+			}
+			form.search button {
+				position: absolute;
+				right: 6px;
+				top: 50%;
+				transform: translateY(-50%);
+				width: 40px;
+				height: 40px;
+				border: 0;
+				border-radius: 50%;
+				background: var(--fg);
+				color: var(--bg);
+				cursor: pointer;
+				display: grid;
+				place-items: center;
+				transition: opacity 0.2s ease;
+			}
+			form.search button:hover {
+				opacity: 0.85;
+			}
+			#status {
+				position: fixed;
+				bottom: 28px;
+				left: 0;
+				right: 0;
+				text-align: center;
+				font-size: 12px;
+				letter-spacing: 0.18em;
+				text-transform: uppercase;
+				color: var(--dim);
+				transition: opacity 0.4s ease;
+			}
+			#status.hide {
+				opacity: 0;
+			}
+
+			/* browsing */
+			#bar {
+				position: fixed;
+				top: 0;
+				left: 0;
+				right: 0;
+				height: 52px;
+				padding: 8px 12px;
+				padding-top: calc(8px + env(safe-area-inset-top, 0px));
+				box-sizing: content-box;
+				display: flex;
+				align-items: center;
+				gap: 12px;
+				background: var(--bg);
+				border-bottom: 1px solid var(--line);
+				transform: translateY(-100%);
+				transition: transform 0.35s ease;
+			}
+			body.browsing #bar {
+				transform: none;
+			}
+			#bar .mark {
+				font-size: 15px;
+				font-weight: 300;
+				letter-spacing: 0.32em;
+				padding: 0 6px 0 8px;
+				cursor: pointer;
+				user-select: none;
+				background: none;
+				border: 0;
+				color: var(--fg);
+			}
+			#bar form.search {
+				width: auto;
+				flex: 1;
+			}
+			#bar form.search input {
+				height: 38px;
+				font-size: 14px;
+				padding: 0 44px 0 16px;
+			}
+			#bar form.search button {
+				width: 30px;
+				height: 30px;
+				right: 4px;
+			}
+			#bar .nav {
+				display: flex;
+				gap: 2px;
+			}
+			#bar .nav button {
+				width: 34px;
+				height: 34px;
+				border: 0;
+				border-radius: 50%;
+				background: transparent;
+				color: var(--fg);
+				cursor: pointer;
+				display: grid;
+				place-items: center;
+			}
+			#bar .nav button:hover {
+				background: #1a1a1a;
+			}
+			#frame {
+				position: fixed;
+				left: 0;
+				right: 0;
+				bottom: 0;
+				top: calc(69px + env(safe-area-inset-top, 0px));
+				width: 100%;
+				height: calc(100% - 69px - env(safe-area-inset-top, 0px));
+				border: 0;
+				background: #fff;
+				opacity: 0;
+				pointer-events: none;
+				transition: opacity 0.35s ease;
+			}
+			body.browsing #frame {
+				opacity: 1;
+				pointer-events: auto;
+			}
+			#progress {
+				position: fixed;
+				top: calc(68px + env(safe-area-inset-top, 0px));
+				left: 0;
+				height: 1px;
+				width: 0;
+				background: var(--fg);
+				opacity: 0;
+				transition:
+					width 2.5s cubic-bezier(0.1, 0.7, 0.2, 1),
+					opacity 0.3s ease;
+			}
+			#progress.on {
+				width: 85%;
+				opacity: 1;
+			}
+			#progress.done {
+				width: 100%;
+				opacity: 0;
+				transition:
+					width 0.2s ease,
+					opacity 0.4s ease 0.2s;
+			}
+		</style>
+	</head>
+	<body>
+		<main id="home">
+			<h1>kaze</h1>
+			<form class="search" id="home-form" autocomplete="off">
+				<input
+					id="home-input"
+					type="text"
+					placeholder="Search or enter a URL"
+					aria-label="Search or enter a URL"
+					spellcheck="false"
+					autofocus
+				/>
+				<button type="submit" aria-label="Go">
+					<svg
+						width="16"
+						height="16"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2.4"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+					>
+						<path d="M5 12h14M13 6l6 6-6 6" />
+					</svg>
+				</button>
+			</form>
+		</main>
+		<div id="status">starting</div>
+
+		<header id="bar">
+			<button class="mark" id="home-btn" title="Home">kaze</button>
+			<div class="nav">
+				<button id="back" aria-label="Back">
+					<svg
+						width="16"
+						height="16"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+					>
+						<path d="M15 6l-6 6 6 6" />
+					</svg>
+				</button>
+				<button id="forward" aria-label="Forward">
+					<svg
+						width="16"
+						height="16"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+					>
+						<path d="M9 6l6 6-6 6" />
+					</svg>
+				</button>
+				<button id="reload" aria-label="Reload">
+					<svg
+						width="15"
+						height="15"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+					>
+						<path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7" />
+					</svg>
+				</button>
+			</div>
+			<form class="search" id="bar-form" autocomplete="off">
+				<input
+					id="bar-input"
+					type="text"
+					spellcheck="false"
+					aria-label="Address"
+				/>
+				<button type="submit" aria-label="Go">
+					<svg
+						width="14"
+						height="14"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2.4"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+					>
+						<path d="M5 12h14M13 6l6 6-6 6" />
+					</svg>
+				</button>
+			</form>
+		</header>
+		<div id="progress"></div>
+		<iframe id="frame" title="kaze"></iframe>
+
+		<script>
+			const $ = (id) => document.getElementById(id);
+			const status = $("status");
+			const frameEl = $("frame");
+			const progress = $("progress");
+			const SEARCH = "https://duckduckgo.com/?q=";
+			const WISP = `${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/wisp/`;
+
+			let frame;
+			const ready = boot().catch((err) => {
+				status.textContent = "failed to start: " + err.message;
+				console.error(err);
+				throw err;
+			});
+
+			async function boot() {
+				if (!("serviceWorker" in navigator))
+					throw new Error("service workers unsupported");
+				status.textContent = "starting";
+				const reg = await navigator.serviceWorker.register("/sw.js");
+				await navigator.serviceWorker.ready;
+				if (!navigator.serviceWorker.controller) {
+					await new Promise((r) =>
+						navigator.serviceWorker.addEventListener("controllerchange", r, {
+							once: true,
+						})
+					);
+				}
+
+				const { Controller } = $kazeController;
+				const controller = new Controller({
+					serviceworker: navigator.serviceWorker.controller ?? reg.active,
+					transport: new LibcurlTransport.LibcurlClient({ wisp: WISP }),
+				});
+				await controller.wait();
+				frame = controller.createFrame(frameEl);
+				status.textContent = "ready";
+				setTimeout(() => status.classList.add("hide"), 900);
+			}
+
+			function toUrl(input) {
+				const q = input.trim();
+				if (!q) return null;
+				if (/^https?:\/\//i.test(q)) return q;
+				// looks like a domain: has a dot, no spaces
+				if (/^[^\s]+\.[^\s]{2,}$/.test(q)) return "https://" + q;
+				return SEARCH + encodeURIComponent(q);
+			}
+
+			async function go(input) {
+				const url = toUrl(input);
+				if (!url) return;
+				document.body.classList.add("browsing");
+				$("bar-input").value = url;
+				$("bar-input").blur();
+				progress.className = "";
+				void progress.offsetWidth;
+				progress.className = "on";
+				await ready;
+				frame.go(url);
+			}
+
+			frameEl.addEventListener("load", () => {
+				progress.className = "done";
+				try {
+					// show the real url of the proxied page when we can read it
+					const loc = frameEl.contentWindow.location.href;
+					const marker = "/~/kz/";
+					const i = loc.indexOf(marker);
+					if (i !== -1) {
+						const rest = loc
+							.slice(i + marker.length)
+							.split("/")
+							.slice(2)
+							.join("/");
+						const decoded = decodeURIComponent(rest.split("?")[0]);
+						if (/^https?:/.test(decoded)) $("bar-input").value = decoded;
+					}
+				} catch {}
+			});
+
+			for (const [form, input] of [
+				["home-form", "home-input"],
+				["bar-form", "bar-input"],
+			]) {
+				$(form).addEventListener("submit", (e) => {
+					e.preventDefault();
+					go($(input).value);
+				});
+			}
+
+			$("home-btn").addEventListener("click", () => {
+				document.body.classList.remove("browsing");
+				$("home-input").value = "";
+				$("home-input").focus();
+			});
+			$("back").addEventListener("click", () =>
+				frameEl.contentWindow?.history.back()
+			);
+			$("forward").addEventListener("click", () =>
+				frameEl.contentWindow?.history.forward()
+			);
+			$("reload").addEventListener("click", () =>
+				frameEl.contentWindow?.location.reload()
+			);
+
+			// "/" focuses the search
+			addEventListener("keydown", (e) => {
+				if (e.key === "/" && document.activeElement?.tagName !== "INPUT") {
+					e.preventDefault();
+					(document.body.classList.contains("browsing")
+						? $("bar-input")
+						: $("home-input")
+					).focus();
+				}
+			});
+		</script>
+	</body>
+</html>

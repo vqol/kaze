@@ -1,5 +1,5 @@
-import { ManagedPlugin } from "@mercuryworkshop/scramjet-controller";
-import type { Frame } from "@mercuryworkshop/scramjet-controller";
+import { ManagedPlugin } from "@kaze/controller";
+import type { Frame } from "@kaze/controller";
 
 export type UrlWatcherOptions = {};
 

@@ -7,6 +7,7 @@ packages:
   - packages/demo
   - packages/bootstrap
   - packages/create-proxy-app
+  - packages/site
 
 overrides:
   htmlparser2: 12.0.0

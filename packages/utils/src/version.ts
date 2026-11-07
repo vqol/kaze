@@ -1,7 +1,7 @@
-import { versionInfo as scramjetVersionInfo } from "@mercuryworkshop/scramjet";
-import { versionInfo as controllerVersionInfo } from "@mercuryworkshop/scramjet-controller";
+import { versionInfo as kazeVersionInfo } from "@kaze/core";
+import { versionInfo as controllerVersionInfo } from "@kaze/controller";
 
-declare const SCRAMJET_EXPECTED_VERSION: string;
+declare const KAZE_EXPECTED_VERSION: string;
 declare const CONTROLLER_EXPECTED_VERSION: string;
 declare const VERSION: string;
 declare const COMMITHASH: string;
@@ -26,26 +26,24 @@ function assertVersionMatch(
 }
 
 export function assertDependencyVersions() {
-	if (typeof scramjetVersionInfo === "undefined") {
-		console.error(
-			"@mercuryworkshop/scramjet is not loaded. Load scramjet before scramjet-utils."
-		);
+	if (typeof kazeVersionInfo === "undefined") {
+		console.error("@kaze/core is not loaded. Load kaze before kaze-utils.");
 	}
 
 	assertVersionMatch(
-		"@mercuryworkshop/scramjet",
-		SCRAMJET_EXPECTED_VERSION,
-		scramjetVersionInfo.version
+		"@kaze/core",
+		KAZE_EXPECTED_VERSION,
+		kazeVersionInfo.version
 	);
 
 	if (typeof controllerVersionInfo === "undefined") {
 		console.error(
-			"@mercuryworkshop/scramjet-controller is not loaded. Load the controller before scramjet-utils."
+			"@kaze/controller is not loaded. Load the controller before kaze-utils."
 		);
 	}
 
 	assertVersionMatch(
-		"@mercuryworkshop/scramjet-controller",
+		"@kaze/controller",
 		CONTROLLER_EXPECTED_VERSION,
 		controllerVersionInfo.version
 	);

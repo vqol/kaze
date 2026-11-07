@@ -112,7 +112,7 @@ export default [
 				setTimeout(() => resolve([]), 3000);
 			});
 			assert(seen.length > 0, "PerformanceObserver saw an entry");
-			for (const n of seen) assert(!n.includes("/~/sj/"), "observed entry leaks the proxy URL: " + n);
+			for (const n of seen) assert(!n.includes("/~/kz/"), "observed entry leaks the proxy URL: " + n);
 		`,
 	}),
 	basicTest({
@@ -262,7 +262,7 @@ export default [
 		name: "platform-import-meta-url",
 		html: `<!DOCTYPE html><html><body><script type="module">
 			runTest(async () => {
-				assert(!import.meta.url.includes("/~/sj/"),
+				assert(!import.meta.url.includes("/~/kz/"),
 					"import.meta.url must not expose the proxy URL: " + import.meta.url);
 				assertEqual(import.meta.url, location.href, "import.meta.url");
 				assertEqual(new URL("./rel.js", import.meta.url).href, location.origin + "/rel.js",
@@ -279,7 +279,7 @@ export default [
 		name: "platform-resource-timing-no-proxy-internals",
 		js: `
 			const names = performance.getEntriesByType("resource").map((e) => e.name);
-			const leaked = names.filter((n) => n.includes("/~/sj/") || n.includes(":4500"));
+			const leaked = names.filter((n) => n.includes("/~/kz/") || n.includes(":4500"));
 			assertDeepEqual(leaked, [], "no proxy-internal resources in the page's timeline");
 		`,
 	}),
@@ -292,7 +292,7 @@ export default [
 		js: `
 			let e;
 			try { null.x; } catch (err) { e = err; }
-			assert(!e.stack.includes("/~/sj/"), "a caught error's stack must not expose the proxy URL: " + e.stack);
+			assert(!e.stack.includes("/~/kz/"), "a caught error's stack must not expose the proxy URL: " + e.stack);
 			assert(!e.stack.includes(":4500"), "nor the harness origin: " + e.stack);
 		`,
 	}),
@@ -325,7 +325,7 @@ export default [
 			const names = (await indexedDB.databases()).map((d) => d.name);
 			assert(names.includes("adversarial-db2"),
 				"databases() must report the page's own name, got " + JSON.stringify(names));
-			assert(!names.some((n) => n.includes("scramjet")),
+			assert(!names.some((n) => n.includes("kaze")),
 				"and must not expose proxy-internal databases: " + JSON.stringify(names));
 		`,
 	}),

@@ -89,7 +89,7 @@ pub fn get_url_rewriter(func: Object) -> Result<WasmUrlRewriter> {
 	Ok(WasmUrlRewriter(
 		func
 			.dyn_into()
-			.map_err(|_| RewriterError::not_fn("scramjet.codec.encode"))?,
+			.map_err(|_| RewriterError::not_fn("kaze.codec.encode"))?,
 	))
 }
 

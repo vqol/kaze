@@ -73,7 +73,7 @@ export default [
 			const seen = [];
 			for (const k in localStorage) seen.push(k);
 			assert(seen.includes(P + "alpha"), "for-in must yield the page's key, got " + JSON.stringify(seen));
-			assert(!seen.some((k) => k.includes("scramjet")),
+			assert(!seen.some((k) => k.includes("kaze")),
 				"for-in must not leak namespaced keys, got " + JSON.stringify(seen));
 		`
 	),
@@ -218,7 +218,7 @@ export default [
 			assert(ev, "a same-origin child frame must receive the storage event");
 			assertEqual(ev.key, "cf", "event.key");
 			assertEqual(ev.newValue, "cfvalue", "event.newValue");
-			assert(!(ev.url || "").includes("/~/sj/"), "event.url must not expose the proxy URL: " + ev.url);
+			assert(!(ev.url || "").includes("/~/kz/"), "event.url must not expose the proxy URL: " + ev.url);
 			localStorage.removeItem("cf");
 		`,
 	}),

@@ -4,7 +4,7 @@ import type {
 	TransferrableResponse,
 } from "@mercuryworkshop/proxy-transports";
 
-import { RpcHelper } from "@mercuryworkshop/rpc";
+import { RpcHelper } from "@kaze/rpc";
 import type { Config } from ".";
 import { CONTROLLERFRAME } from "./symbols";
 import type {
@@ -15,15 +15,15 @@ import type {
 } from "./types";
 import {
 	CookieJar,
-	SCRAMJETCLIENT,
-	ScramjetClient,
+	KAZECLIENT,
+	KazeClient,
 	setWasm,
 	Tap,
 	type CookieSyncOptions,
-	type ScramjetConfig,
-	type ScramjetContext,
+	type KazeConfig,
+	type KazeContext,
 	type TrackedHistoryState,
-} from "@mercuryworkshop/scramjet";
+} from "@kaze/core";
 
 const MessagePort_postMessage = MessagePort.prototype.postMessage;
 const postMessage = (
@@ -167,12 +167,12 @@ const sw = navigator.serviceWorker.controller;
 
 type Init = {
 	config: Config;
-	sjconfig: ScramjetConfig;
+	kzconfig: KazeConfig;
 	prefix: URL;
 	cookies: string;
 	yieldGetInjectScripts: (
 		config: Config,
-		sjconfig: ScramjetConfig,
+		kzconfig: KazeConfig,
 		prefix: URL,
 		cookieJar: CookieJar,
 		codecEncode: (input: string) => string,
@@ -185,8 +185,8 @@ type Init = {
 };
 
 export function load(init: Init) {
-	if (SCRAMJETCLIENT in globalThis) {
-		((globalThis as any)[SCRAMJETCLIENT] as ScramjetClient).syncDocumentInit({
+	if (KAZECLIENT in globalThis) {
+		((globalThis as any)[KAZECLIENT] as KazeClient).syncDocumentInit({
 			initHeaders: init.initHeaders,
 			history: init.history,
 			cookies: init.cookies,
@@ -196,7 +196,9 @@ export function load(init: Init) {
 	if (!("WASM" in self)) {
 		throw new Error("WASM not found in global scope!");
 	}
-	const wasm = Uint8Array.from(atob(self.WASM as string), (c) => c.charCodeAt(0));
+	const wasm = Uint8Array.from(atob(self.WASM as string), (c) =>
+		c.charCodeAt(0)
+	);
 	delete (self as any).WASM;
 	setWasm(wasm);
 
@@ -211,7 +213,7 @@ function createFrameId() {
 }
 
 class ExecutionContextWrapper {
-	client!: ScramjetClient;
+	client!: KazeClient;
 	cookieJar: CookieJar;
 	transport: RemoteTransport;
 	private handleServiceWorkerCookieMessage: (event: MessageEvent) => void;
@@ -285,10 +287,10 @@ class ExecutionContextWrapper {
 			this.handleServiceWorkerCookieMessage
 		);
 
-		this.injectScramjet();
+		this.injectKaze();
 	}
 
-	injectScramjet() {
+	injectKaze() {
 		const frame = this.global.frameElement as HTMLIFrameElement | null;
 		if (frame && !frame.name) {
 			window.name = frame.name = createFrameId();
@@ -299,7 +301,7 @@ class ExecutionContextWrapper {
 			isTopLevel = false;
 			let currentwin = this.global.window;
 			while (currentwin.parent !== currentwin) {
-				const currentclient = currentwin[SCRAMJETCLIENT];
+				const currentclient = currentwin[KAZECLIENT];
 				if (!currentclient) {
 					currentwin = currentwin.parent.window;
 					continue;
@@ -316,14 +318,14 @@ class ExecutionContextWrapper {
 				currentwin = currentwin.parent.window;
 			}
 		}
-		const context: ScramjetContext = {
-			config: this.init.sjconfig,
+		const context: KazeContext = {
+			config: this.init.kzconfig,
 			prefix: this.init.prefix,
 			cookieJar: this.cookieJar,
 			interface: {
 				getInjectScripts: this.init.yieldGetInjectScripts(
 					this.init.config,
-					this.init.sjconfig,
+					this.init.kzconfig,
 					this.init.prefix,
 					this.cookieJar,
 					this.init.codecEncode,
@@ -333,7 +335,7 @@ class ExecutionContextWrapper {
 				codecDecode: this.init.codecDecode,
 			},
 		};
-		this.client = new ScramjetClient(this.global, {
+		this.client = new KazeClient(this.global, {
 			context,
 			transport: this.transport,
 			sendSetCookie: async (cookies, options) => {

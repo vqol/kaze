@@ -1,8 +1,8 @@
 /**
  * @fileoverview
- * Scramjet path export for routing functionality
+ * Kaze path export for routing functionality
  */
 
-declare const scramjetPath: string;
+declare const kazePath: string;
 
-export { scramjetPath };
+export { kazePath };

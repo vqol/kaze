@@ -2,9 +2,9 @@ import LoadInterstitial from "./components/LoadInterstitial";
 import App from "./App";
 import LibcurlClient from "@mercuryworkshop/libcurl-transport";
 import EpoxyClient from "@mercuryworkshop/epoxy-transport";
-import { defaultConfigDev } from "@mercuryworkshop/scramjet";
-import { Controller } from "@mercuryworkshop/scramjet-controller";
-import { HttpCachePlugin } from "@mercuryworkshop/scramjet-utils";
+import { defaultConfigDev } from "@kaze/core";
+import { Controller } from "@kaze/controller";
+import { HttpCachePlugin } from "@kaze/utils";
 import { demoSettingsStore } from "./store";
 
 let app = document.getElementById("app")!;
@@ -96,7 +96,7 @@ async function init() {
 		controller = new Controller({
 			serviceworker: readySw,
 			transport: getTransport(),
-			scramjetConfig: defaultConfigDev,
+			kazeConfig: defaultConfigDev,
 		});
 		await controller.wait();
 		console.log(controller);

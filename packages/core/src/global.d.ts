@@ -6,16 +6,16 @@ declare global {
 		REAL_WASM: Uint8Array;
 
 		/**
-		 * The scramjet client belonging to a window.
+		 * The kaze client belonging to a window.
 		 */
-		[import("./symbols").SCRAMJETCLIENT]: import("./client").ScramjetClient;
+		[import("./symbols").KAZECLIENT]: import("./client").KazeClient;
 	}
 
 	interface Document {
 		/**
 		 * Should be the same as window.
 		 */
-		[import("./symbols").SCRAMJETCLIENT]: import("./client").ScramjetClient;
+		[import("./symbols").KAZECLIENT]: import("./client").KazeClient;
 	}
 }
 
@@ -27,6 +27,6 @@ declare const dbg: {
 	time: (meta: URLMeta, before: number, type: string) => void;
 };
 
-// eslint-disable-next-line scramjet-core/no-globals
+// eslint-disable-next-line kaze-core/no-globals
 declare type GlobalThis = typeof globalThis;
 declare type Self = Window & GlobalThis;

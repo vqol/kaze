@@ -6,14 +6,14 @@ import {
 } from "@mercuryworkshop/proxy-transports";
 
 import { type URLMeta } from "@rewriters/url";
-import { type ScramjetRequestMode } from "./parse";
-import { ScramjetHeaders } from "@/shared/headers";
-import { HtmlRewriterHooks, ScramjetContext } from "@/shared";
+import { type KazeRequestMode } from "./parse";
+import { KazeHeaders } from "@/shared/headers";
+import { HtmlRewriterHooks, KazeContext } from "@/shared";
 import { Tap, TapInstance } from "@/Tap";
 import { doHandleFetch } from "./fetch";
 import { _URL, _Map } from "@/shared/snapshot";
 
-export interface ScramjetFetchRequest {
+export interface KazeFetchRequest {
 	rawUrl: URL;
 	rawReferrer: string | null;
 	// use parsed.destination instead
@@ -24,7 +24,7 @@ export interface ScramjetFetchRequest {
 	body: BodyType | null;
 	cache: RequestCache;
 
-	initialHeaders: ScramjetHeaders;
+	initialHeaders: KazeHeaders;
 
 	rawClientUrl?: URL;
 
@@ -32,7 +32,7 @@ export interface ScramjetFetchRequest {
 	clientId: string;
 }
 
-export interface ScramjetFetchParsed {
+export interface KazeFetchParsed {
 	url: _URL;
 	clientUrl?: _URL;
 	referrerSourceUrl?: _URL | null;
@@ -50,9 +50,9 @@ export interface ScramjetFetchParsed {
 	fetchCredentialsInclude?: boolean;
 
 	// tracks RequestInit.mode if set
-	fetchMode?: ScramjetRequestMode;
+	fetchMode?: KazeRequestMode;
 
-	// was this request made by an iframe? (scramjet's definition of an iframe, not the browser's)
+	// was this request made by an iframe? (kaze's definition of an iframe, not the browser's)
 	isIframe?: boolean;
 
 	// request.destination, but is overridden by $dest
@@ -62,12 +62,12 @@ export interface ScramjetFetchParsed {
 	isModule: boolean;
 	isFakeDataURL: boolean;
 	referrerPolicy?: string;
-	trackedClient?: ScramjetFetchTrackedClient;
+	trackedClient?: KazeFetchTrackedClient;
 }
 
-export interface ScramjetFetchResponse {
+export interface KazeFetchResponse {
 	body: BodyType;
-	headers: ScramjetHeaders;
+	headers: KazeHeaders;
 	status: number;
 	statusText: string;
 }
@@ -84,7 +84,7 @@ export type CookieSyncOptions = {
 
 export type FetchHandlerInit = {
 	transport: ProxyTransport;
-	context: ScramjetContext;
+	context: KazeContext;
 	crossOriginIsolated?: boolean;
 
 	sendSetCookie: (
@@ -99,20 +99,20 @@ export type TrackedHistoryState = {
 	url: string;
 	refererPolicy?: string;
 };
-export class ScramjetFetchTrackedClient {
+export class KazeFetchTrackedClient {
 	history: TrackedHistoryState[] = [];
 	constructor(public clientId: string) {}
 }
 
-// eslint-disable-next-line scramjet-core/no-globals
-export class ScramjetFetchHandler extends EventTarget {
+// eslint-disable-next-line kaze-core/no-globals
+export class KazeFetchHandler extends EventTarget {
 	public client: BareCompatibleClient;
 	public crossOriginIsolated: boolean = false;
-	public context: ScramjetContext;
+	public context: KazeContext;
 
-	public trackedClients: _Map<string, ScramjetFetchTrackedClient> = new _Map<
+	public trackedClients: _Map<string, KazeFetchTrackedClient> = new _Map<
 		string,
-		ScramjetFetchTrackedClient
+		KazeFetchTrackedClient
 	>();
 
 	public hooks: {
@@ -148,26 +148,24 @@ export class ScramjetFetchHandler extends EventTarget {
 		};
 	}
 
-	async handleFetch(
-		request: ScramjetFetchRequest
-	): Promise<ScramjetFetchResponse> {
+	async handleFetch(request: KazeFetchRequest): Promise<KazeFetchResponse> {
 		return doHandleFetch(this, request);
 	}
 }
 export type FetchHooks = {
 	intercept: {
 		context: {
-			request: ScramjetFetchRequest;
-			parsed: ScramjetFetchParsed;
+			request: KazeFetchRequest;
+			parsed: KazeFetchParsed;
 		};
 		props: {
-			response?: ScramjetFetchResponse;
+			response?: KazeFetchResponse;
 		};
 	};
 	request: {
 		context: {
-			request: ScramjetFetchRequest;
-			parsed: ScramjetFetchParsed;
+			request: KazeFetchRequest;
+			parsed: KazeFetchParsed;
 			client: BareCompatibleClient;
 		};
 		props: {
@@ -178,8 +176,8 @@ export type FetchHooks = {
 	};
 	preresponse: {
 		context: {
-			request: ScramjetFetchRequest;
-			parsed: ScramjetFetchParsed;
+			request: KazeFetchRequest;
+			parsed: KazeFetchParsed;
 		};
 		props: {
 			response: BareResponse;
@@ -187,11 +185,11 @@ export type FetchHooks = {
 	};
 	response: {
 		context: {
-			request: ScramjetFetchRequest;
-			parsed: ScramjetFetchParsed;
+			request: KazeFetchRequest;
+			parsed: KazeFetchParsed;
 		};
 		props: {
-			response: ScramjetFetchResponse;
+			response: KazeFetchResponse;
 		};
 	};
 };

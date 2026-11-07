@@ -17,7 +17,7 @@ import {
 } from "./devlib.ts";
 import rspackConfig from "./rspack.config.ts";
 
-const image = await fs.readFile("./assets/scramjet-mini-noalpha.png");
+const image = await fs.readFile("./assets/kaze-mini-noalpha.png");
 
 const commit = execSync("git rev-parse --short HEAD", {
 	encoding: "utf-8",
@@ -70,7 +70,7 @@ const note = (text: string) => chalk.hex("#CDB4DB")(text);
 const connector = chalk.hex("#8D99AE").dim("@");
 
 const lines = [
-	black()(`${highlight("SCRAMJET DEV SERVER")}`),
+	black()(`${highlight("KAZE DEV SERVER")}`),
 	black()(
 		`${accent("demo")} ${connector} ${urlColor(
 			`http://localhost:${DEMO_PORT}/`
@@ -81,7 +81,7 @@ const lines = [
 			process.env.VITE_WISP_URL ?? ""
 		)}`
 	),
-	black()(chalk.dim(`[${branch}] ${commit} scramjet/${version}`)),
+	black()(chalk.dim(`[${branch}] ${commit} kaze/${version}`)),
 ];
 
 runRspack(rspackConfig);

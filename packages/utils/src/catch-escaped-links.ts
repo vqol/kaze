@@ -1,6 +1,6 @@
-import { ScramjetHeaders } from "@mercuryworkshop/scramjet";
-import { ManagedPlugin } from "@mercuryworkshop/scramjet-controller";
-import type { Frame } from "@mercuryworkshop/scramjet-controller";
+import { KazeHeaders } from "@kaze/core";
+import { ManagedPlugin } from "@kaze/controller";
+import type { Frame } from "@kaze/controller";
 
 /**
  * Intercepts top-level navigation requests (triggered by clicking "open in new tab" on a link, or window.open)
@@ -23,12 +23,10 @@ export class CatchEscapedLinksPlugin extends ManagedPlugin {
 					body: "",
 					status: 302,
 					statusText: "Found",
-					headers: ScramjetHeaders.fromRawHeaders([
-						["Location", String(location)],
-					]),
+					headers: KazeHeaders.fromRawHeaders([["Location", String(location)]]),
 				};
 			},
-			{ after: ["scramjet-http-cache"] }
+			{ after: ["kaze-http-cache"] }
 		);
 	}
 }

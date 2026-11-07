@@ -1,6 +1,6 @@
-import { ScramjetClient } from "@client/index";
+import { KazeClient } from "@client/index";
 
-export default function (client: ScramjetClient) {
+export default function (client: KazeClient) {
 	// protocol handlers will not work out of the box since there's no guarantee the service worker will be set up
 	// or any other expectations that the user agent might need
 	// sites can set this up themselves if they want to

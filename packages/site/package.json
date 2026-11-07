@@ -1,0 +1,17 @@
+{
+	"name": "@kaze/site",
+	"version": "1.0.0",
+	"private": true,
+	"type": "module",
+	"description": "kaze: minimal search page + wisp server",
+	"license": "AGPL-3.0-only",
+	"scripts": {
+		"start": "node server.mjs"
+	},
+	"dependencies": {
+		"@kaze/controller": "workspace:*",
+		"@kaze/core": "workspace:*",
+		"@mercuryworkshop/libcurl-transport": "catalog:",
+		"@mercuryworkshop/wisp-js": "catalog:"
+	}
+}

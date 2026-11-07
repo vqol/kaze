@@ -1,11 +1,11 @@
-import { ScramjetClient } from "@client/index";
+import { KazeClient } from "@client/index";
 import { unrewriteLinkHeader } from "./xmlhttprequest";
 import { String } from "@/shared/snapshot";
 
 /**
  * Capture the page's intended `init.mode` / `init.credentials` and forward
- * them to `rewriteUrl` so they get stamped onto the proxy URL as `sj$mode` /
- * `sj$cred`. The service-side handler reads those back when computing
+ * them to `rewriteUrl` so they get stamped onto the proxy URL as `kz$mode` /
+ * `kz$cred`. The service-side handler reads those back when computing
  * Sec-Fetch-Mode / Sec-Fetch-Storage-Access, since `event.request.mode` and
  * `event.request.credentials` from the SW are derived against the rewritten
  * same-origin URL and don't reflect the page's actual intent.
@@ -18,7 +18,7 @@ function rewriteUrlOptionsForFetch(init: RequestInit | undefined) {
 	};
 }
 
-export default function (client: ScramjetClient) {
+export default function (client: KazeClient) {
 	client.Proxy("fetch", {
 		apply(ctx) {
 			if (client.box.instanceof(ctx.args[0], "Request")) return;

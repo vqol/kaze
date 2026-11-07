@@ -9,16 +9,16 @@ import { glob } from "glob";
 import { existsSync } from "node:fs";
 
 /**
- * Expected distribution files for Scramjet's bundles.
+ * Expected distribution files for Kaze's bundles.
  * All JS files listed must have corresponding source maps.
  * These aren't globs.
  */
 const EXPECTED_CORE_DIST_FILES = [
-	"packages/core/dist/scramjet.js",
-	"packages/core/dist/scramjet.mjs",
-	"packages/core/dist/scramjet_bundled.js",
-	"packages/core/dist/scramjet_bundled.mjs",
-	"packages/core/dist/scramjet.wasm",
+	"packages/core/dist/kaze.js",
+	"packages/core/dist/kaze.mjs",
+	"packages/core/dist/kaze_bundled.js",
+	"packages/core/dist/kaze_bundled.mjs",
+	"packages/core/dist/kaze.wasm",
 ];
 
 /**

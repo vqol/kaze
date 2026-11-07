@@ -6,11 +6,11 @@ export default {
 			structured: false,
 			targets: [
 				{
-					src: "node_modules/@mercuryworkshop/scramjet/dist/*",
-					dest: "scramjet",
+					src: "node_modules/@kaze/core/dist/*",
+					dest: "kaze",
 				},
 				{
-					src: "node_modules/@mercuryworkshop/scramjet-controller/dist/*",
+					src: "node_modules/@kaze/controller/dist/*",
 					dest: "controller",
 				},
 			],

@@ -1,7 +1,7 @@
-import type { ScramjetClient } from "@mercuryworkshop/scramjet";
+import type { KazeClient } from "@kaze/core";
 
 export function setupAlwaysLastBubble(
-	client: ScramjetClient,
+	client: KazeClient,
 	whatToCapture: string[]
 ) {
 	// goal is to override the default behavior of clicking on an <a> link

@@ -1,7 +1,7 @@
-import { ScramjetClient } from "@client/index";
+import { KazeClient } from "@client/index";
 import { String } from "@/shared/snapshot";
 
-export default function (client: ScramjetClient, _self: Self) {
+export default function (client: KazeClient, _self: Self) {
 	client.Trap("PerformanceEntry.prototype.name", {
 		get(ctx) {
 			// name is going to be a url typically

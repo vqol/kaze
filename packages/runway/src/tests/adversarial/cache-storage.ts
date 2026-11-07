@@ -35,7 +35,7 @@ export default [
 			const m = await c.match("/script.js");
 			assert(m, "a fetched response can be cached");
 			assertEqual(m.url, location.origin + "/script.js", "the cached Response.url is the site's");
-			assert(!m.url.includes("/~/sj/"), "no proxy URL in the cached response");
+			assert(!m.url.includes("/~/kz/"), "no proxy URL in the cached response");
 			assert((await m.text()).length > 0, "the cached body is readable");
 			await caches.delete("adversarial-cache2");
 		`,
@@ -53,7 +53,7 @@ export default [
 			const c = await caches.open("adversarial-cache3");
 			const names = await caches.keys();
 			assert(names.includes("adversarial-cache3"), "own cache is listed under its own name: " + JSON.stringify(names));
-			assert(!names.some((n) => n.includes("scramjet")), "no proxy-internal caches listed: " + JSON.stringify(names));
+			assert(!names.some((n) => n.includes("kaze")), "no proxy-internal caches listed: " + JSON.stringify(names));
 			assert(!names.some((n) => n.includes("http")), "no namespaced names: " + JSON.stringify(names));
 			await caches.delete("adversarial-cache3");
 		`,

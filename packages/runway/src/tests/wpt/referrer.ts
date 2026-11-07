@@ -741,9 +741,9 @@ function wptPageTest(entryPath: string): Test {
 		name: testNameForPath(entryPath),
 		port: 0,
 		path: basePath,
-		scramjetOnly: true,
+		kazeOnly: true,
 		reloadHarness: true,
-		topLevelScramjet: false,
+		topLevelKaze: false,
 		warmProxiedNavigation: true,
 		timeoutMs: 15000,
 		async start({ pass, fail }) {

@@ -16,20 +16,13 @@ export async function startHarness() {
 	const app = express();
 
 	app.use(
-		"/scramjet",
-		express.static(
-			path.join(packageRoot, "node_modules/@mercuryworkshop/scramjet/dist")
-		)
+		"/kaze",
+		express.static(path.join(packageRoot, "node_modules/@kaze/core/dist"))
 	);
 
 	app.use(
 		"/controller",
-		express.static(
-			path.join(
-				packageRoot,
-				"node_modules/@mercuryworkshop/scramjet-controller/dist"
-			)
-		)
+		express.static(path.join(packageRoot, "node_modules/@kaze/controller/dist"))
 	);
 
 	app.use(

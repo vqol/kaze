@@ -1,5 +1,5 @@
 name: Rewriter Divergence
-description: Report JavaScript that Scramjet's rewriter mangles, fails to parse, or rewrites incorrectly
+description: Report JavaScript that Kaze's rewriter mangles, fails to parse, or rewrites incorrectly
 labels: ["rewriter divergence"]
 title: "[rewriter divergence] "
 body:
@@ -13,22 +13,22 @@ body:
     id: version
     attributes:
       label: Version
-      description: Can be copied from scramjet://about or through the web console with `$scramjet.versionInfo.version`
+      description: Can be copied from kaze://about or through the web console with `$kaze.versionInfo.version`
     validations:
       required: true
   - type: input
     id: Build
     attributes:
       label: Build
-      description: Can be copied from scramjet://about or through the web console with `$scramjet.versionInfo.build`
+      description: Can be copied from kaze://about or through the web console with `$kaze.versionInfo.build`
     validations:
       required: true
   - type: checkboxes
     attributes:
       label: Have you tested that this is not an upstream issue or an issue with your configuration?
       options:
-        - label: I have tried reproducing this issue in the Scramjet Demo and it could be reproduced there
-        - label: I have confirmed the input script runs correctly in the same browser without Scramjet
+        - label: I have tried reproducing this issue in the Kaze Demo and it could be reproduced there
+        - label: I have confirmed the input script runs correctly in the same browser without Kaze
   - type: input
     id: description
     attributes:

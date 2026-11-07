@@ -1,6 +1,6 @@
-import { versionInfo as scramjetVersionInfo } from "@mercuryworkshop/scramjet";
+import { versionInfo as kazeVersionInfo } from "@kaze/core";
 
-declare const SCRAMJET_EXPECTED_VERSION: string;
+declare const KAZE_EXPECTED_VERSION: string;
 declare const VERSION: string;
 declare const COMMITHASH: string;
 declare const BUILDDATE: string;
@@ -23,16 +23,16 @@ function assertVersionMatch(
 	}
 }
 
-export function assertRuntimeScramjetVersion() {
-	if (typeof scramjetVersionInfo === "undefined") {
+export function assertRuntimeKazeVersion() {
+	if (typeof kazeVersionInfo === "undefined") {
 		throw new Error(
-			"@mercuryworkshop/scramjet is not loaded. Load scramjet before the controller."
+			"@kaze/core is not loaded. Load kaze before the controller."
 		);
 	}
 
 	assertVersionMatch(
-		"@mercuryworkshop/scramjet",
-		SCRAMJET_EXPECTED_VERSION,
-		scramjetVersionInfo.version
+		"@kaze/core",
+		KAZE_EXPECTED_VERSION,
+		kazeVersionInfo.version
 	);
 }

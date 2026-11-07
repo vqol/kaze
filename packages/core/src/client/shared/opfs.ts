@@ -1,7 +1,7 @@
-import { ScramjetClient } from "@client/index";
+import { KazeClient } from "@client/index";
 import { Object_defineProperty } from "@/shared/snapshot";
 
-export default function (client: ScramjetClient) {
+export default function (client: KazeClient) {
 	client.Proxy("StorageManager.prototype.getDirectory", {
 		apply(ctx) {
 			const rootPromise = ctx.call();

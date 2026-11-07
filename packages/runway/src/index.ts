@@ -52,11 +52,11 @@ type ExpectedFailingTestsFile = {
 	tests: string[];
 };
 
-type HarnessKind = "scramjet" | "bare";
+type HarnessKind = "kaze" | "bare";
 
 type ConsistencyIssue = {
 	label: string;
-	scramjet?: any;
+	kaze?: any;
 	bare?: any;
 	reason: string;
 };
@@ -97,18 +97,14 @@ function createConsistencyTracker(requireBoth: boolean) {
 		const entry = getEntry(safeLabel);
 		entry.values[source] = value;
 
-		if (
-			!entry.settled &&
-			"scramjet" in entry.values &&
-			"bare" in entry.values
-		) {
-			const scramjetValue = entry.values.scramjet;
+		if (!entry.settled && "kaze" in entry.values && "bare" in entry.values) {
+			const kazeValue = entry.values.kaze;
 			const bareValue = entry.values.bare;
-			if (!isDeepStrictEqual(scramjetValue, bareValue)) {
+			if (!isDeepStrictEqual(kazeValue, bareValue)) {
 				entry.settled = true;
 				issues.push({
 					label: safeLabel,
-					scramjet: scramjetValue,
+					kaze: kazeValue,
 					bare: bareValue,
 					reason: "Values differ",
 				});
@@ -146,7 +142,7 @@ function createConsistencyTracker(requireBoth: boolean) {
 				if (!entry.settled) {
 					issues.push({
 						label,
-						scramjet: entry.values.scramjet,
+						kaze: entry.values.kaze,
 						bare: entry.values.bare,
 						reason: "Timed out waiting for both values",
 					});
@@ -518,7 +514,7 @@ async function runTestOnHarness(
 	}
 
 	const runwayToken = crypto.randomUUID();
-	const testUrl = test.topLevelScramjet
+	const testUrl = test.topLevelKaze
 		? runwayTestTargetUrl(test)
 		: appendRunwayToken(
 				runwayTestTargetUrl(test),
@@ -527,13 +523,13 @@ async function runTestOnHarness(
 			);
 	const harnessResultPromise = waitForResult(
 		timeout,
-		test.topLevelScramjet ? undefined : runwayToken
+		test.topLevelKaze ? undefined : runwayToken
 	);
 	let result: TestResult;
 	let topLevelPage: Page | null = null;
 	let stopWatchingTopLevelPage: (() => void) | null = null;
 	let topLevelNavigationPromise: Promise<void> | null = null;
-	if (test.topLevelScramjet) {
+	if (test.topLevelKaze) {
 		const proxiedUrl = await page.evaluate((url) => {
 			if (typeof (window as any).__runwayGetProxiedUrl === "function") {
 				return (window as any).__runwayGetProxiedUrl(url);
@@ -721,7 +717,7 @@ async function main() {
 	}
 	if (fastMode) {
 		console.log(
-			"⚡ Fast mode: reusing one scramjet harness instance per worker and skipping bare tests\n"
+			"⚡ Fast mode: reusing one kaze harness instance per worker and skipping bare tests\n"
 		);
 	}
 	if (updateFailingTests) {
@@ -740,18 +736,18 @@ async function main() {
 
 	const needsHarness = tests.some((test) => !test.directFn);
 	const needsBareHarness =
-		runBareTests && tests.some((test) => !test.directFn && !test.scramjetOnly);
-	let scramjetUrl = "";
+		runBareTests && tests.some((test) => !test.directFn && !test.kazeOnly);
+	let kazeUrl = "";
 	let bareUrl = "";
 	let browser: Browser | null = null;
 	if (needsHarness) {
 		// Start the harness servers
 		const { startHarness, PORT: HARNESS_PORT } = await import(
-			"./harness/scramjet/index.ts"
+			"./harness/kaze/index.ts"
 		);
 		await startHarness();
-		scramjetUrl = `http://localhost:${HARNESS_PORT}`;
-		console.log(`📡 Scramjet harness running at ${scramjetUrl}`);
+		kazeUrl = `http://localhost:${HARNESS_PORT}`;
+		console.log(`📡 Kaze harness running at ${kazeUrl}`);
 		if (needsBareHarness) {
 			const { startBareHarness, BARE_PORT } = await import(
 				"./harness/bare/index.ts"
@@ -772,7 +768,7 @@ async function main() {
 		console.log("🧪 Direct tests only: skipping harness/browser startup\n");
 	}
 
-	const coverageEnabled = process.env.SCRAMJET_COVERAGE === "1";
+	const coverageEnabled = process.env.KAZE_COVERAGE === "1";
 	const coverageEntries: Array<{
 		url: string;
 		functions: any;
@@ -806,7 +802,7 @@ async function main() {
 				`\n💥 FATAL: ${label} harness failed to initialize: ${statusText}`
 			);
 			console.error(
-				"   Check that scramjet is built and all dependencies are available.\n"
+				"   Check that kaze is built and all dependencies are available.\n"
 			);
 			ghaError(`Harness failed to initialize: ${label}: ${statusText}`);
 			await browser?.close();
@@ -822,18 +818,18 @@ async function main() {
 		) => Promise<void> = async () => {};
 		const workerNeedsBare =
 			runBareTests &&
-			workerTests.some((test) => !test.directFn && !test.scramjetOnly);
-		const createPages = async (installScramjetBindings: boolean) => {
+			workerTests.some((test) => !test.directFn && !test.kazeOnly);
+		const createPages = async (installKazeBindings: boolean) => {
 			if (!browser) {
 				throw new Error("Browser is unavailable for harness-based tests");
 			}
 			return {
-				scramjet: await createTestPage(browser, {
-					name: "scramjet",
+				kaze: await createTestPage(browser, {
+					name: "kaze",
 					onConsistent: (source, label, value) =>
 						consistencyHandler(source, label, value),
 					collectCoverage: coverageEnabled,
-					installBindings: installScramjetBindings,
+					installBindings: installKazeBindings,
 				}),
 				bare: workerNeedsBare
 					? await createTestPage(browser, {
@@ -844,12 +840,12 @@ async function main() {
 					: null,
 			};
 		};
-		let scramjetBindingsInstalled = true;
+		let kazeBindingsInstalled = true;
 		let testPages: Awaited<ReturnType<typeof createPages>> | null = null;
 		let needsReload = true;
 
 		for (const test of workerTests) {
-			const runBareForTest = runBareTests && !test.scramjetOnly;
+			const runBareForTest = runBareTests && !test.kazeOnly;
 			const consistencyTracker = createConsistencyTracker(runBareForTest);
 			consistencyHandler = consistencyTracker.handle;
 			if (!test.directFn && !fastMode && test.reloadHarness) {
@@ -866,30 +862,24 @@ async function main() {
 					result = { status: "pass" };
 				} else {
 					// Reload pages if needed (first run or after failure)
-					const desiredScramjetBindings = fastMode
-						? true
-						: !test.topLevelScramjet;
+					const desiredKazeBindings = fastMode ? true : !test.topLevelKaze;
 					if (
 						!testPages ||
 						needsReload ||
-						desiredScramjetBindings !== scramjetBindingsInstalled
+						desiredKazeBindings !== kazeBindingsInstalled
 					) {
 						if (testPages) {
-							if (!testPages.scramjet.page.isClosed()) {
-								await flushCoverage(testPages.scramjet.page);
+							if (!testPages.kaze.page.isClosed()) {
+								await flushCoverage(testPages.kaze.page);
 							}
 							await Promise.all([
-								testPages.scramjet.cleanup(),
+								testPages.kaze.cleanup(),
 								testPages.bare?.cleanup(),
 							]);
 						}
-						scramjetBindingsInstalled = desiredScramjetBindings;
-						testPages = await createPages(scramjetBindingsInstalled);
-						await ensureHarnessReady(
-							testPages.scramjet.page,
-							scramjetUrl,
-							"Scramjet"
-						);
+						kazeBindingsInstalled = desiredKazeBindings;
+						testPages = await createPages(kazeBindingsInstalled);
+						await ensureHarnessReady(testPages.kaze.page, kazeUrl, "Kaze");
 						if (testPages.bare) {
 							await ensureHarnessReady(testPages.bare.page, bareUrl, "Bare");
 						}
@@ -912,13 +902,13 @@ async function main() {
 						started = true;
 					}
 
-					const scramjetPromise = runTestOnHarness(
-						testPages.scramjet.page,
-						testPages.scramjet.context,
-						testPages.scramjet.waitForResult,
-						testPages.scramjet.cancelWaitForResult,
-						testPages.scramjet.getOkCount,
-						testPages.scramjet.watchPage,
+					const kazePromise = runTestOnHarness(
+						testPages.kaze.page,
+						testPages.kaze.context,
+						testPages.kaze.waitForResult,
+						testPages.kaze.cancelWaitForResult,
+						testPages.kaze.getOkCount,
+						testPages.kaze.watchPage,
 						test,
 						serverResult,
 						test.timeoutMs
@@ -937,24 +927,22 @@ async function main() {
 							)
 						: null;
 
-					const [scramjetResult, bareResult] = runBareForTest
-						? await Promise.all([scramjetPromise, barePromise!])
-						: [await scramjetPromise, null];
+					const [kazeResult, bareResult] = runBareForTest
+						? await Promise.all([kazePromise, barePromise!])
+						: [await kazePromise, null];
 
 					const consistencyResult = await consistencyTracker.finalize(30000);
 
 					let computedResult: TestResult;
 					if (!runBareForTest) {
-						computedResult = scramjetResult;
+						computedResult = kazeResult;
 					} else if (
-						scramjetResult.status !== "pass" ||
+						kazeResult.status !== "pass" ||
 						bareResult!.status !== "pass"
 					) {
 						const failures: string[] = [];
-						if (scramjetResult.status !== "pass") {
-							failures.push(
-								`scramjet: ${scramjetResult.message || scramjetResult.status}`
-							);
+						if (kazeResult.status !== "pass") {
+							failures.push(`kaze: ${kazeResult.message || kazeResult.status}`);
 						}
 						if (bareResult!.status !== "pass") {
 							failures.push(
@@ -964,7 +952,7 @@ async function main() {
 						computedResult = {
 							status: "fail",
 							message: failures.join(" | "),
-							details: { scramjet: scramjetResult, bare: bareResult },
+							details: { kaze: kazeResult, bare: bareResult },
 						};
 					} else if (consistencyResult.status === "fail") {
 						computedResult = {
@@ -1042,11 +1030,8 @@ async function main() {
 		}
 
 		if (testPages) {
-			await Promise.all([
-				testPages.scramjet.cleanup(),
-				testPages.bare?.cleanup(),
-			]);
-			await flushCoverage(testPages.scramjet.page);
+			await Promise.all([testPages.kaze.cleanup(), testPages.bare?.cleanup()]);
+			await flushCoverage(testPages.kaze.page);
 		}
 	};
 
@@ -1061,11 +1046,11 @@ async function main() {
 	await browser?.close();
 
 	if (coverageEnabled && needsHarness) {
-		const scramjetEntries = coverageEntries.filter((entry) =>
-			entry.url?.includes("/scramjet/scramjet.js")
+		const kazeEntries = coverageEntries.filter((entry) =>
+			entry.url?.includes("/kaze/kaze.js")
 		);
-		const scramjetRoot = path.resolve(__dirname, "..", "..", "..");
-		const coreRoot = path.join(scramjetRoot, "packages", "core");
+		const kazeRoot = path.resolve(__dirname, "..", "..", "..");
+		const coreRoot = path.join(kazeRoot, "packages", "core");
 		const allowedRoots = [
 			path.join(coreRoot, "src"),
 			path.join(coreRoot, "rewriter", "src"),
@@ -1076,18 +1061,18 @@ async function main() {
 		const { createCoverageMap } = istanbulCoverage as typeof istanbulCoverage;
 		const coverageMap = createCoverageMap({});
 
-		if (scramjetEntries.length > 0) {
-			const scramjetBundlePath = path.join(
+		if (kazeEntries.length > 0) {
+			const kazeBundlePath = path.join(
 				__dirname,
 				"..",
 				"node_modules",
 				"@mercuryworkshop",
-				"scramjet",
+				"kaze",
 				"dist",
-				"scramjet.js"
+				"kaze.js"
 			);
-			const mapPath = `${scramjetBundlePath}.map`;
-			const bundleSource = await readFile(scramjetBundlePath, "utf-8");
+			const mapPath = `${kazeBundlePath}.map`;
+			const bundleSource = await readFile(kazeBundlePath, "utf-8");
 			const rawMap = JSON.parse(await readFile(mapPath, "utf-8"));
 			rawMap.sourceRoot = "";
 			rawMap.sources = rawMap.sources.map((source: string) => {
@@ -1095,12 +1080,12 @@ async function main() {
 					.replace(/^webpack:\/\/\$?[^/]*\//, "")
 					.replace(/^\.?\//, "");
 				if (normalized.startsWith("packages/")) {
-					return path.join(scramjetRoot, normalized);
+					return path.join(kazeRoot, normalized);
 				}
 				return normalized;
 			});
-			for (const entry of scramjetEntries) {
-				const converter = v8toIstanbul(scramjetBundlePath, 0, {
+			for (const entry of kazeEntries) {
+				const converter = v8toIstanbul(kazeBundlePath, 0, {
 					source: bundleSource,
 					originalSource: bundleSource,
 					sourceMap: { sourcemap: rawMap },
@@ -1121,7 +1106,7 @@ async function main() {
 			if (normalizedPosix.includes("node_modules/")) continue;
 			if (!normalizedPosix.includes("packages/core/")) continue;
 			const resolved = normalizedPosix.startsWith("packages/")
-				? path.join(scramjetRoot, normalizedPosix)
+				? path.join(kazeRoot, normalizedPosix)
 				: filePath;
 			if (allowedRoots.some((root) => resolved.startsWith(root))) {
 				filteredCoverage[resolved] = data;
@@ -1129,7 +1114,7 @@ async function main() {
 		}
 
 		await writeFile(
-			path.join(coverageDir, "scramjet-coverage.json"),
+			path.join(coverageDir, "kaze-coverage.json"),
 			JSON.stringify(filteredCoverage, null, 2),
 			"utf-8"
 		);
@@ -1138,7 +1123,7 @@ async function main() {
 		const formatSummary = (item: typeof summary.lines) =>
 			`${item.pct.toFixed(1)}% (${item.covered}/${item.total})`;
 		console.log(
-			`\n📊 Scramjet TS coverage written to coverage/scramjet-coverage.json (${Object.keys(filteredCoverage).length} files)`
+			`\n📊 Kaze TS coverage written to coverage/kaze-coverage.json (${Object.keys(filteredCoverage).length} files)`
 		);
 		console.log(
 			`📈 Coverage summary: lines ${formatSummary(summary.lines)}, statements ${formatSummary(summary.statements)}, functions ${formatSummary(summary.functions)}, branches ${formatSummary(summary.branches)}`
@@ -1177,12 +1162,12 @@ async function main() {
 		}
 
 		await writeFile(
-			path.join(coverageDir, "scramjet-uncovered-functions.json"),
+			path.join(coverageDir, "kaze-uncovered-functions.json"),
 			JSON.stringify(uncoveredFunctions, null, 2),
 			"utf-8"
 		);
 		console.log(
-			`🧭 Uncovered functions written to coverage/scramjet-uncovered-functions.json (${uncoveredFunctions.length} entries)`
+			`🧭 Uncovered functions written to coverage/kaze-uncovered-functions.json (${uncoveredFunctions.length} entries)`
 		);
 	} else if (coverageEnabled) {
 		console.log(

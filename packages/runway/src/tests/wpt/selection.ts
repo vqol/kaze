@@ -47,7 +47,7 @@ const FETCH_METADATA_USER_ACTIVATION_GENERATED = new Set<string>([
 ]);
 
 /**
- * Worklet-related fetch-metadata tests. Scramjet doesn't currently proxy
+ * Worklet-related fetch-metadata tests. Kaze doesn't currently proxy
  * AudioWorklet / PaintWorklet module loads, so these can never pass; we
  * exclude them rather than vendor dead weight.
  */
@@ -63,7 +63,7 @@ const FETCH_METADATA_WORKLET_FILES = new Set<string>([
  * scenarios the procedurally-generated tests don't (e.g. the page's own
  * navigation request, preload, style, track, etc.). Files known to require
  * real user activation (notably `window-open.https.sub.html`) and worklet
- * tests (audio/paint worklet — scramjet doesn't proxy worklets) are excluded.
+ * tests (audio/paint worklet — kaze doesn't proxy worklets) are excluded.
  */
 const FETCH_METADATA_PAGE_FILES = new Set<string>([
 	"fetch/metadata/embed.https.sub.tentative.html",
@@ -131,7 +131,7 @@ export const COOKIE_WPT_FILES = [
 	"cookies/prefix/__secure.header.https.html",
 	// Size tests
 	"cookies/size/name-and-value.html",
-	// SameSite test pages (all .https.html — run over HTTP since Scramjet treats all as HTTPS)
+	// SameSite test pages (all .https.html — run over HTTP since Kaze treats all as HTTPS)
 	"cookies/samesite/fetch.https.html",
 	"cookies/samesite/iframe.https.html",
 	"cookies/samesite/iframe.document.https.html",

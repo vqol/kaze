@@ -1,6 +1,6 @@
 /// <reference lib="WebWorker" />
 /// <reference types="@types/serviceworker" />
-import { RpcHelper } from "@mercuryworkshop/rpc";
+import { RpcHelper } from "@kaze/rpc";
 import type { Controllerbound, SWbound } from "./types";
 import type { RawHeaders } from "@mercuryworkshop/proxy-transports";
 

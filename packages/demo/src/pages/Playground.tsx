@@ -1,15 +1,13 @@
 import { css, type Component } from "dreamland/core";
-import {
-  BareResponse,
-} from "@mercuryworkshop/proxy-transports";
+import { BareResponse } from "@mercuryworkshop/proxy-transports";
 import {
 	Plugin,
 	rewriteUrl,
-	ScramjetFetchHandler,
-	ScramjetHeaders,
-	type ScramjetFetchRequest,
-} from "@mercuryworkshop/scramjet";
-import type { Frame } from "@mercuryworkshop/scramjet-controller";
+	KazeFetchHandler,
+	KazeHeaders,
+	type KazeFetchRequest,
+} from "@kaze/core";
+import type { Frame } from "@kaze/controller";
 import { cachePlugin, controller } from "..";
 import Monaco from "../components/Monaco";
 
@@ -27,7 +25,7 @@ type PlaygroundProject = {
 	files: Record<string, string>;
 };
 
-const PLAYGROUND_STORAGE_KEY = "scramjet-demo-playground-projects-v1";
+const PLAYGROUND_STORAGE_KEY = "kaze-demo-playground-projects-v1";
 
 const DEFAULT_FILES: PlaygroundFile[] = [
 	{
@@ -37,12 +35,12 @@ const DEFAULT_FILES: PlaygroundFile[] = [
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Scramjet Playground</title>
+    <title>Kaze Playground</title>
     <link rel="stylesheet" href="/style.css" />
   </head>
   <body>
     <main>
-      <h1>Scramjet Playground</h1>
+      <h1>Kaze Playground</h1>
       <p>Edit files on the left, then reload the preview.</p>
       <button id="btn">Click me</button>
       <pre id="out"></pre>
@@ -83,7 +81,7 @@ button {
 const button = document.getElementById("btn");
 if (button && out) {
   button.addEventListener("click", () => {
-    out.textContent = "Hello from fakeorigin assets served via Scramjet request hook.";
+    out.textContent = "Hello from fakeorigin assets served via Kaze request hook.";
   });
 }
 `,
@@ -443,7 +441,7 @@ const PlaygroundView: Component<
 		this.rewriteStatus = "Rewriting...";
 
 		try {
-			const handler = new ScramjetFetchHandler({
+			const handler = new KazeFetchHandler({
 				crossOriginIsolated: self.crossOriginIsolated,
 				context: frame.context,
 				transport: frame.controller.transport,
@@ -494,13 +492,11 @@ const PlaygroundView: Component<
 				method: "GET",
 				body: null,
 				cache: "default",
-				initialHeaders: new ScramjetHeaders(),
+				initialHeaders: new KazeHeaders(),
 				clientId: frame.id,
 			};
 
-			const rewritten = await handler.handleFetch(
-				request as ScramjetFetchRequest
-			);
+			const rewritten = await handler.handleFetch(request as KazeFetchRequest);
 			handler.client.fetch = originalFetch;
 
 			this.rewrittenBody = await readBodyText(rewritten.body);

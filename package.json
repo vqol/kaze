@@ -1,5 +1,5 @@
 {
-	"name": "scramjet-root",
+	"name": "kaze-root",
 	"version": "1.0.0",
 	"description": "",
 	"type": "module",
@@ -8,6 +8,7 @@
 	"license": "AGPL-3.0-only",
 	"packageManager": "pnpm@12.17.0",
 	"scripts": {
+		"build": "rspack build --mode production",
 		"dev": "node --no-warnings=ExperimentalWarning devserver.ts",
 		"dev:debug": "DEBUG=1 node --no-warnings=ExperimentalWarning devserver.ts",
 		"test:package": "ava tests/ci/packageValidation.js",

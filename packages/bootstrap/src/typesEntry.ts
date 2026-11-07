@@ -1,4 +1,4 @@
-import type { Controller } from "@mercuryworkshop/scramjet-controller";
+import type { Controller } from "@kaze/controller";
 declare global {
 	function initBootstrap(): Promise<Controller>;
 }

@@ -1,10 +1,10 @@
 import { Object_entries, Object_keys, _URL, Error } from "@/shared/snapshot";
 import { unrewriteUrl, URLMeta } from "@rewriters/url";
 import {
-	ScramjetFetchHandler,
-	ScramjetFetchParsed,
-	ScramjetFetchRequest,
-	ScramjetFetchTrackedClient,
+	KazeFetchHandler,
+	KazeFetchParsed,
+	KazeFetchRequest,
+	KazeFetchTrackedClient,
 } from ".";
 
 export const QP = {
@@ -56,9 +56,9 @@ export function parseQueryParams(searchParams: URLSearchParams): {
 }
 
 export function parseRequest(
-	request: ScramjetFetchRequest,
-	handler: ScramjetFetchHandler
-): ScramjetFetchParsed {
+	request: KazeFetchRequest,
+	handler: KazeFetchHandler
+): KazeFetchParsed {
 	const strippedUrl = new _URL(request.rawUrl.href);
 	const { params, extras } = parseQueryParams(request.rawUrl.searchParams);
 	strippedUrl.search = "";
@@ -82,11 +82,11 @@ export function parseRequest(
 	}
 
 	const clientId = request.clientId;
-	let trackedClient: ScramjetFetchTrackedClient | undefined;
+	let trackedClient: KazeFetchTrackedClient | undefined;
 	if (clientId) {
 		trackedClient = handler.trackedClients.get(clientId);
 		if (!trackedClient) {
-			trackedClient = new ScramjetFetchTrackedClient(clientId);
+			trackedClient = new KazeFetchTrackedClient(clientId);
 			handler.trackedClients.set(clientId, trackedClient);
 		}
 	}
@@ -122,7 +122,7 @@ export function parseRequest(
 		referrerPolicy: params.referrerPolicy,
 	};
 
-	const parsed: ScramjetFetchParsed = {
+	const parsed: KazeFetchParsed = {
 		meta,
 		url,
 		isModule: params.isModule === "module",

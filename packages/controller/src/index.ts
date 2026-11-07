@@ -1,4 +1,4 @@
-import { type MethodsDefinition, RpcHelper } from "@mercuryworkshop/rpc";
+import { type MethodsDefinition, RpcHelper } from "@kaze/rpc";
 import {
 	BareResponse,
 	type ProxyTransport,
@@ -6,20 +6,20 @@ import {
 import { deepmerge } from "@fastify/deepmerge";
 import {
 	CookieJar,
-	defaultConfig as scramjetDefaultConfig,
+	defaultConfig as kazeDefaultConfig,
 	rewriteUrl,
-	ScramjetFetchHandler,
-	ScramjetHeaders,
+	KazeFetchHandler,
+	KazeHeaders,
 	setWasm,
 	Tap,
 	type CookieSyncOptions,
 	type FetchHooks,
-	type ScramjetConfig,
-	type ScramjetContext,
-	type ScramjetInterface,
+	type KazeConfig,
+	type KazeContext,
+	type KazeInterface,
 	type TrackedHistoryState,
 	Plugin,
-} from "@mercuryworkshop/scramjet";
+} from "@kaze/core";
 import { CONTROLLERFRAME } from "./symbols";
 import type {
 	FrameInitHooks,
@@ -31,12 +31,12 @@ import type {
 	WebSocketMessage,
 	FrameErrorHooks,
 } from "./types";
-import { assertRuntimeScramjetVersion } from "./version";
+import { assertRuntimeKazeVersion } from "./version";
 
 export { versionInfo } from "./version";
 export type Config = {
 	prefix: string;
-	scramjetPath: string;
+	kazePath: string;
 	injectPath: string;
 	wasmPath: string;
 	virtualWasmPath: string;
@@ -44,11 +44,11 @@ export type Config = {
 };
 
 export const config: Config = {
-	prefix: "/~/sj/",
-	scramjetPath: "/scramjet/scramjet.js",
+	prefix: "/~/kz/",
+	kazePath: "/kaze/kaze.js",
 	injectPath: "/controller/controller.inject.js",
-	wasmPath: "/scramjet/scramjet.wasm",
-	virtualWasmPath: "scramjet.wasm.js",
+	wasmPath: "/kaze/kaze.wasm",
+	virtualWasmPath: "kaze.wasm.js",
 	codec: {
 		encode: (url: string) => {
 			if (!url) return url;
@@ -63,12 +63,12 @@ export const config: Config = {
 	},
 };
 
-const scramjetConfig: Partial<ScramjetConfig> = {
+const kazeConfig: Partial<KazeConfig> = {
 	flags: {
-		...scramjetDefaultConfig.flags,
+		...kazeDefaultConfig.flags,
 		allowFailedIntercepts: true,
 	},
-	maskedfiles: ["inject.js", "scramjet.wasm.js"],
+	maskedfiles: ["inject.js", "kaze.wasm.js"],
 };
 
 type PersistedCookieState = {
@@ -89,10 +89,10 @@ export class ManagedPlugin extends Plugin {
 	}
 }
 
-const COOKIE_DB_NAME = "__scramjet_controller";
+const COOKIE_DB_NAME = "__kaze_controller";
 const COOKIE_STORE_NAME = "state";
 const COOKIE_STATE_KEY = "cookies";
-const BROADCASTCHANNEL_NAME = "__scramjet_controller_channel";
+const BROADCASTCHANNEL_NAME = "__kaze_controller_channel";
 
 let cookieDbPromise: Promise<IDBDatabase> | null = null;
 
@@ -204,7 +204,7 @@ type ControllerInit = {
 	serviceworker: ServiceWorker;
 	transport: ProxyTransport;
 	config?: Partial<Config>;
-	scramjetConfig?: Partial<ScramjetConfig>;
+	kazeConfig?: Partial<KazeConfig>;
 };
 
 type FrameOptions = {
@@ -214,7 +214,7 @@ type FrameOptions = {
 export class Controller {
 	id: string;
 	config: Config;
-	scramjetConfig: ScramjetConfig;
+	kazeConfig: KazeConfig;
 	prefix: string;
 	cookieJar = new CookieJar();
 	frames: Frame[] = [];
@@ -251,7 +251,7 @@ export class Controller {
 		void this.loadSavedCookies();
 	};
 
-	private async loadScramjetWasm() {
+	private async loadKazeWasm() {
 		if (this.wasmAlreadyFetched) {
 			return;
 		}
@@ -303,10 +303,10 @@ export class Controller {
 					];
 				}
 
-				const sjheaders = ScramjetHeaders.fromRawHeaders(data.initialHeaders);
+				const kzheaders = KazeHeaders.fromRawHeaders(data.initialHeaders);
 
 				const fetchresponse = await frame.fetchHandler.handleFetch({
-					initialHeaders: sjheaders,
+					initialHeaders: kzheaders,
 					rawClientUrl: data.rawClientUrl
 						? new URL(data.rawClientUrl)
 						: undefined,
@@ -447,14 +447,14 @@ export class Controller {
 	};
 
 	constructor(public init: ControllerInit) {
-		assertRuntimeScramjetVersion();
+		assertRuntimeKazeVersion();
 		this.id = makeId();
 		this.config = deepMerge(config, init.config || {}) as Config;
-		this.scramjetConfig = deepMerge(scramjetConfig, scramjetDefaultConfig);
-		this.scramjetConfig = deepMerge(
-			this.scramjetConfig,
-			init.scramjetConfig || {}
-		) as ScramjetConfig;
+		this.kazeConfig = deepMerge(kazeConfig, kazeDefaultConfig);
+		this.kazeConfig = deepMerge(
+			this.kazeConfig,
+			init.kazeConfig || {}
+		) as KazeConfig;
 		this.prefix = this.config.prefix + this.id + "/";
 		this.serviceWorkerController = init.serviceworker;
 
@@ -462,7 +462,7 @@ export class Controller {
 			new Promise<void>((resolve) => {
 				this.readyResolve = resolve;
 			}),
-			this.loadScramjetWasm(),
+			this.loadKazeWasm(),
 			this.loadSavedCookies(true),
 		]).then(() => undefined);
 
@@ -658,13 +658,13 @@ function base64Encode(text: string) {
 
 function yieldGetInjectScripts(
 	config: Config,
-	sjconfig: ScramjetConfig,
+	kzconfig: KazeConfig,
 	prefix: URL,
 	cookieJar: CookieJar,
 	codecEncode: (input: string) => string,
 	codecDecode: (input: string) => string
 ) {
-	const getInjectScripts: ScramjetInterface["getInjectScripts"] = (
+	const getInjectScripts: KazeInterface["getInjectScripts"] = (
 		meta,
 		handler,
 		htmlcontext,
@@ -682,16 +682,16 @@ function yieldGetInjectScripts(
 			);
 		}
 		return [
-			script(config.scramjetPath),
+			script(config.kazePath),
 			script(prefix.href + config.virtualWasmPath),
 			script(config.injectPath),
 			script(
 				"data:text/javascript;charset=utf-8;base64," +
 					base64Encode(`
-					document.querySelectorAll("script[scramjet-injected]").forEach(script => script.remove());
-					$scramjetController.load({
+					document.querySelectorAll("script[kaze-injected]").forEach(script => script.remove());
+					$kazeController.load({
 						config: ${JSON.stringify(config)},
-						sjconfig: ${JSON.stringify(sjconfig)},
+						kzconfig: ${JSON.stringify(kzconfig)},
 						prefix: new URL("${prefix.href}"),
 						cookies: ${JSON.stringify(cookieJar.dump())},
 						yieldGetInjectScripts: ${yieldGetInjectScripts.toString()},
@@ -710,22 +710,22 @@ function yieldGetInjectScripts(
 export class Frame {
 	id: string;
 	prefix: string;
-	fetchHandler: ScramjetFetchHandler;
+	fetchHandler: KazeFetchHandler;
 	hooks: {
 		fetch: FetchHooks;
 		init: FrameInitHooks;
 		error: FrameErrorHooks;
 	};
 
-	get context(): ScramjetContext {
+	get context(): KazeContext {
 		return {
-			config: this.controller.scramjetConfig,
+			config: this.controller.kazeConfig,
 			prefix: new URL(this.prefix, location.href),
 			cookieJar: this.controller.cookieJar,
 			interface: {
 				getInjectScripts: yieldGetInjectScripts(
 					this.controller.config,
-					this.controller.scramjetConfig,
+					this.controller.kazeConfig,
 					new URL(this.prefix, location.href),
 					this.controller.cookieJar,
 					this.controller.config.codec.encode,
@@ -734,22 +734,22 @@ export class Frame {
 				getWorkerInjectScripts: (meta, type, script) => {
 					let str = "";
 
-					str += script(this.controller.config.scramjetPath);
+					str += script(this.controller.config.kazePath);
 					str += script(this.prefix + this.controller.config.virtualWasmPath);
 					str += script(
 						"data:text/javascript;charset=utf-8;base64," +
 							base64Encode(`
 					(()=>{
-						const { ScramjetClient, CookieJar, setWasm } = $scramjet;
+						const { KazeClient, CookieJar, setWasm } = $kaze;
 
 						setWasm(Uint8Array.from(atob(self.WASM), (c) => c.charCodeAt(0)));
 						delete self.WASM;
 
-						const sjconfig = ${JSON.stringify(this.controller.scramjetConfig)};
+						const kzconfig = ${JSON.stringify(this.controller.kazeConfig)};
 						const prefix = new URL("${this.prefix}", location.href);
 
 						const context = {
-							config: sjconfig,
+							config: kzconfig,
 							prefix,
 							interface: {
 								codecEncode: ${this.controller.config.codec.encode.toString()},
@@ -757,7 +757,7 @@ export class Frame {
 							},
 						};
 
-						const client = new ScramjetClient(globalThis, {
+						const client = new KazeClient(globalThis, {
 							context,
 							transport: null,
 						});
@@ -784,7 +784,7 @@ export class Frame {
 		this.id = makeId();
 		this.prefix = this.controller.prefix + this.id + "/";
 
-		this.fetchHandler = new ScramjetFetchHandler({
+		this.fetchHandler = new KazeFetchHandler({
 			crossOriginIsolated: self.crossOriginIsolated,
 			context: this.context,
 			transport: controller.transport,

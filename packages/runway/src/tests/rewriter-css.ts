@@ -1,8 +1,4 @@
-import {
-	rewriteCss,
-	rewriteUrl,
-	unrewriteCss,
-} from "@mercuryworkshop/scramjet/bundled";
+import { rewriteCss, rewriteUrl, unrewriteCss } from "@kaze/core/bundled";
 import { directTest, type Test } from "../testcommon.ts";
 
 function createRewriteContext() {

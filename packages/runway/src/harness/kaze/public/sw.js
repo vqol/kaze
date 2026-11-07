@@ -9,7 +9,7 @@ self.addEventListener("activate", (event) => {
 });
 
 addEventListener("fetch", (e) => {
-	if ($scramjetController.shouldRoute(e)) {
-		e.respondWith($scramjetController.route(e));
+	if ($kazeController.shouldRoute(e)) {
+		e.respondWith($kazeController.route(e));
 	}
 });

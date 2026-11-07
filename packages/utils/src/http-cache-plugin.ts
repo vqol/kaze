@@ -1,4 +1,4 @@
-// HTTP cache plugin for ScramjetFetchHandler.
+// HTTP cache plugin for KazeFetchHandler.
 //
 // Service-worker `fetch` ignores the browser's HTTP cache, so without this
 // every navigation re-runs the full network fetch even for unchanged
@@ -43,20 +43,15 @@
 // `rewriteBody` runs, without going through `rewriteBody` again. That can
 // come later.
 
-import {
-  BareResponse
-} from "@mercuryworkshop/proxy-transports";
-import {
-	type ScramjetFetchRequest,
-	type ScramjetHeaders,
-} from "@mercuryworkshop/scramjet";
-import { ManagedPlugin } from "@mercuryworkshop/scramjet-controller";
-import type { Frame } from "@mercuryworkshop/scramjet-controller";
+import { BareResponse } from "@mercuryworkshop/proxy-transports";
+import { type KazeFetchRequest, type KazeHeaders } from "@kaze/core";
+import { ManagedPlugin } from "@kaze/controller";
+import type { Frame } from "@kaze/controller";
 
-export const CACHE_NAME = "scramjet-http-cache-v2";
+export const CACHE_NAME = "kaze-http-cache-v2";
 
 /** Header recording when this entry entered the cache (ms since epoch). */
-const STORED_AT_HEADER = "x-sj-cached-at";
+const STORED_AT_HEADER = "x-kz-cached-at";
 
 /**
  * Status codes RFC 9110 §15.1 marks as "cacheable by default", minus 206:
@@ -167,7 +162,7 @@ function isCacheableMethod(method: string): boolean {
 /**
  * Whether a response (status + Cache-Control + Vary) is allowed to be stored.
  * RFC 9110 §15.1 + RFC 9111 §3. `headers` is the upstream's raw response
- * headers, not yet through scramjet's response-header rewriter.
+ * headers, not yet through kaze's response-header rewriter.
  */
 function responseIsStorable(
 	status: number,
@@ -190,7 +185,7 @@ function responseIsStorable(
 /** Build a synthetic cache-key Request keyed by the *underlying* URL. */
 function buildCacheKeyRequest(
 	parsedUrl: string,
-	headers: ScramjetHeaders
+	headers: KazeHeaders
 ): Request {
 	const native = new Headers();
 	for (const [k, v] of headers.toRawHeaders()) {
@@ -199,7 +194,7 @@ function buildCacheKeyRequest(
 		} catch {}
 	}
 	const cacheKeyUrl =
-		"https://sj-cache.invalid/" + encodeURIComponent(parsedUrl);
+		"https://kz-cache.invalid/" + encodeURIComponent(parsedUrl);
 	return new Request(cacheKeyUrl, { method: "GET", headers: native });
 }
 
@@ -297,7 +292,7 @@ export interface HttpCachePluginOptions {
 }
 
 /**
- * RFC-9111-ish HTTP cache for ScramjetFetchHandler.
+ * RFC-9111-ish HTTP cache for KazeFetchHandler.
  *
  * One instance can be installed onto multiple Frames -- the WeakMap of
  * "did this request come from cache?" book-keeping is per-instance, not
@@ -310,10 +305,10 @@ export class HttpCachePlugin extends ManagedPlugin {
 	// Marks requests whose `earlyResponse` we sourced from the cache, so the
 	// preresponse hook below knows not to re-store them. WeakMap keys are
 	// the request objects so entries clean themselves up automatically.
-	private cameFromCache = new WeakMap<ScramjetFetchRequest, true>();
+	private cameFromCache = new WeakMap<KazeFetchRequest, true>();
 
 	constructor(options: HttpCachePluginOptions = {}) {
-		super("scramjet-http-cache", []);
+		super("kaze-http-cache", []);
 		this.cacheName = options.cacheName ?? CACHE_NAME;
 	}
 
@@ -454,7 +449,7 @@ export class HttpCachePlugin extends ManagedPlugin {
 			} catch (err) {
 				// Cache.put can fail on opaque or oddly-headered responses;
 				// don't let a cache write failure break the actual fetch.
-				console.warn("[scramjet-http-cache] cache.put failed:", err);
+				console.warn("[kaze-http-cache] cache.put failed:", err);
 			}
 		});
 	}
@@ -470,7 +465,7 @@ export class HttpCachePlugin extends ManagedPlugin {
 			this.cachePromise = null;
 			return await caches.delete(this.cacheName);
 		} catch (err) {
-			console.error("[scramjet-http-cache] bust failed:", err);
+			console.error("[kaze-http-cache] bust failed:", err);
 			return false;
 		}
 	}

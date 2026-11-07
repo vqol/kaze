@@ -4,15 +4,12 @@ import {
 	type Component,
 	createState,
 } from "dreamland/core";
-import {
-	CatchEscapedLinksPlugin,
-	UrlWatcherPlugin,
-} from "@mercuryworkshop/scramjet-utils";
-import { versionInfo } from "@mercuryworkshop/scramjet";
+import { CatchEscapedLinksPlugin, UrlWatcherPlugin } from "@kaze/utils";
+import { versionInfo } from "@kaze/core";
 import { cachePlugin, controller } from "..";
 import { demoSettingsStore, normalizeHomeUrl } from "../store";
 import homepage from "./homepage.html?raw";
-import type { Frame } from "@mercuryworkshop/scramjet-controller";
+import type { Frame } from "@kaze/controller";
 
 export const browserState = createState({
 	url: demoSettingsStore.homeUrl,
@@ -21,14 +18,14 @@ export const browserState = createState({
 
 export const Omnibox: Component = function (cx) {
 	const navigate = () => {
-	  let url: string;
-    try {
-        url = normalizeHomeUrl(browserState.url);
-    } catch (e) {
-        console.error("navigate failed:", e);
-        return;
-    }
-    browserState.url = url;
+		let url: string;
+		try {
+			url = normalizeHomeUrl(browserState.url);
+		} catch (e) {
+			console.error("navigate failed:", e);
+			return;
+		}
+		browserState.url = url;
 		demoSettingsStore.homeUrl = browserState.url;
 		browserState.frame?.go(browserState.url);
 	};
@@ -170,15 +167,15 @@ const BrowserView: Component<
 		});
 		let realHomepage = homepage;
 		realHomepage = realHomepage.replaceAll(
-			"{{SCRAMJET_VERSION}}",
+			"{{KAZE_VERSION}}",
 			String(versionInfo.version)
 		);
 		realHomepage = realHomepage.replaceAll(
-			"{{SCRAMJET_BUILD}}",
+			"{{KAZE_BUILD}}",
 			String(versionInfo.build)
 		);
 		realHomepage = realHomepage.replaceAll(
-			"{{SCRAMJET_DATE_PRETTY}}",
+			"{{KAZE_DATE_PRETTY}}",
 			new Date(versionInfo.date).toLocaleString(undefined, {
 				dateStyle: "short",
 				timeStyle: "short",

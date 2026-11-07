@@ -3,7 +3,7 @@ import { BootstrapOptions } from "./common";
 import type { ProxyTransport } from "@mercuryworkshop/proxy-transports";
 import type EpoxyClient from "@mercuryworkshop/epoxy-transport";
 import type LibcurlClient from "@mercuryworkshop/libcurl-transport";
-import * as ControllerApi from "@mercuryworkshop/scramjet-controller";
+import * as ControllerApi from "@kaze/controller";
 
 export async function init(cfg: BootstrapOptions) {
 	const sw = await registerSw(cfg.swPath);
@@ -11,9 +11,9 @@ export async function init(cfg: BootstrapOptions) {
 }
 
 export async function loadRest(sw: ServiceWorker, cfg: BootstrapOptions) {
-	await loadScript(cfg.scramjetBundlePath);
-	await loadScript(cfg.scramjetControllerApiPath);
-	await loadScript(cfg.scramjetUtilsBundlePath);
+	await loadScript(cfg.kazeBundlePath);
+	await loadScript(cfg.kazeControllerApiPath);
+	await loadScript(cfg.kazeUtilsBundlePath);
 
 	const resolvedWispPath = `${location.protocol === "https:" ? "wss:" : "ws:"}//${location.host}${cfg.wispPath}`;
 
@@ -33,10 +33,10 @@ export async function loadRest(sw: ServiceWorker, cfg: BootstrapOptions) {
 		//...
 	}
 	const { Controller, config } = (window as any)
-		.$scramjetController as typeof ControllerApi;
-	config.injectPath = cfg.scramjetControllerInjectPath;
-	config.wasmPath = cfg.scramjetWasmPath;
-	config.scramjetPath = cfg.scramjetBundlePath;
+		.$kazeController as typeof ControllerApi;
+	config.injectPath = cfg.kazeControllerInjectPath;
+	config.wasmPath = cfg.kazeWasmPath;
+	config.kazePath = cfg.kazeBundlePath;
 
 	const controller = new Controller({
 		serviceworker: sw,

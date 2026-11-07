@@ -1,6 +1,6 @@
-import { ScramjetClient } from "@client/index";
+import { KazeClient } from "@client/index";
 
-export default function (client: ScramjetClient) {
+export default function (client: KazeClient) {
 	client.Proxy("console.clear", {
 		apply(ctx) {
 			// fuck you

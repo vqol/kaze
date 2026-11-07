@@ -150,7 +150,7 @@ export function warnOnUrlEscape(server: ViteDevServer) {
 		next: (err?: unknown) => void
 	) => {
 		const pathname = (req.url ?? "").split("?")[0] ?? "";
-		if (pathname.startsWith("/~/sj") && !pathname.endsWith(".map")) {
+		if (pathname.startsWith("/~/kz") && !pathname.endsWith(".map")) {
 			server.config.logger.warn(`url escape: ${req.method} ${req.url}`);
 		}
 		next();

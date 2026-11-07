@@ -1,62 +1,58 @@
-<h1 align="center">Scramjet</h1>
-<div align="center">
-  <img src="assets/scramjet.png" height="200" />
-</div>
+<h1 align="center">kaze</h1>
 
-<div align="center">
-  <a href="https://www.npmjs.com/package/@mercuryworkshop/scramjet"><img src="https://img.shields.io/npm/v/@mercuryworkshop/scramjet.svg?maxAge=3600" alt="npm version" /></a>
-  <img src="https://img.shields.io/github/issues/MercuryWorkshop/scramjet?style=flat&color=orange" />
-  <img src="https://img.shields.io/github/stars/MercuryWorkshop/scramjet?style=flat&color=orange" />
-</div>
+kaze is an interception-based web proxy: it sandboxes arbitrary web content in the browser by intercepting requests in a service worker and rewriting HTML, CSS and JavaScript on the fly. Traffic goes through a [wisp](https://github.com/MercuryWorkshop/wisp-protocol) server.
 
----
+kaze is a fork of [Scramjet](https://github.com/MercuryWorkshop/scramjet) by Mercury Workshop, renamed and tuned for page-load speed. It is licensed under the AGPL-3.0, like the original.
 
-Scramjet is an experimental interception-based web proxy designed to evade internet censorship and bypass arbitrary browser restrictions.<br><br>
-Scramjet allows you to sandbox arbitrary web content, bypass CORS restrictions on loading websites, and instrument and debug websites inside the browser itself. This is accomplished through a combination of interception, rewriting, and sandboxing techniques. You can learn more about the technical details <a href="https://developer.puter.com/blog/how-I-ported-the-web-to-the-web/"><strong>here</strong></a>.<br><br>
+## Packages
 
-<div align="center">
- <a href="https://github.com/MercuryWorkshop/scramjet/wiki">Documentation</a> | <a href="https://scramjet.mercurywork.shop">Playground</a> | <a href="https://discord.gg/tmApqGqfX2">Discord</a>
-</div>
-
-## Supported Sites
-
-Some of the popular websites that Scramjet supports include:
-
-- [Google](https://google.com)
-- [Youtube](https://youtube.com)
-- [Instagram](https://instagram.com)
-- [ChatGPT](https://chatgpt.com)
-- [Reddit](https://reddit.com)
-- [Twitter](https://twitter.com)
-- [Discord](https://discord.com)
-- [Spotify](https://spotify.com)
-- [GeForce NOW](https://play.geforcenow.com/)
-- [now.gg](https://now.gg)
+| Package                                                          | What it is                                                      |
+| ---------------------------------------------------------------- | --------------------------------------------------------------- |
+| `packages/core` (`@kaze/core`)                                   | Rewriter (Rust/oxc → wasm), fetch handler and client runtime    |
+| `packages/controller` (`@kaze/controller`)                       | Service worker + controller that wires frames to a transport    |
+| `packages/site` (`@kaze/site`)                                   | Minimal black-and-white search page with a built-in wisp server |
+| `packages/runway`                                                | Playwright correctness suite (and load benchmark)               |
+| `packages/utils`, `bootstrap`, `rpc`, `demo`, `create-proxy-app` | Supporting packages and the full demo                           |
 
 ## Development
 
 ### Dependencies
 
-- Recent versions of `node.js` and `pnpm`
-- `rustup`
-- `wasm-bindgen`
+- Node.js 23 or later and `pnpm`
+- `rustup` (the nightly toolchain is selected automatically)
+- `wasm-bindgen` 0.2.105
 - [Binaryen's `wasm-opt`](https://github.com/WebAssembly/binaryen)
 - [this `wasm-snip` fork](https://github.com/r58Playz/wasm-snip)
 
-#### Building
-
-- Clone the repository with `git clone --recursive https://github.com/MercuryWorkshop/scramjet`
-- Install the dependencies with `pnpm i`
-- Change directories with `cd packages/core`
-- Build the rewriter with `pnpm rewriter:build`
-- Build Scramjet with `pnpm build`
-
-### Running Scramjet Locally
-
-You can run the Scramjet dev server when running this command at the root
+### Building
 
 ```sh
-pnpm dev
+pnpm i
+cd packages/core && RELEASE=1 pnpm rewriter:build && cd ../..
+pnpm build   # or: npx rspack build --mode production
 ```
 
-The demo page for scramjet should now be running at <http://localhost:4141> and should rebuild upon a file being changed (excluding the rewriter).
+`RELEASE=1` builds an optimized rewriter (tuned for speed; `OPTIMIZE_FOR_SIZE=1` for a smaller wasm).
+
+### Running
+
+The search page with its wisp server:
+
+```sh
+cd packages/site && pnpm start   # http://localhost:8080
+```
+
+The full demo with live rebuilds:
+
+```sh
+pnpm dev   # http://localhost:4141
+```
+
+### Tests
+
+```sh
+cd packages/runway
+OMIT_WPT=1 node --experimental-strip-types src/index.ts [test-name-filter]
+```
+
+Set `RUNWAY_CHANNEL=chrome` to use an installed Chrome instead of Playwright's Chromium.

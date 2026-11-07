@@ -27,15 +27,15 @@ jobs:
     name: Check Version
     runs-on: ubuntu-latest
     outputs:
-      scramjet_version_changed: ${{ steps.check-scramjet.outputs.version_changed }}
-      scramjet_new_version: ${{ steps.check-scramjet.outputs.new_version }}
-      scramjet_tag_arg: ${{ steps.check-scramjet.outputs.tag_arg }}
-      controller_version_changed: ${{ steps.check-scramjet-controller.outputs.version_changed }}
-      controller_new_version: ${{ steps.check-scramjet-controller.outputs.new_version }}
-      controller_tag_arg: ${{ steps.check-scramjet-controller.outputs.tag_arg }}
-      utils_version_changed: ${{ steps.check-scramjet-utils.outputs.version_changed }}
-      utils_new_version: ${{ steps.check-scramjet-utils.outputs.new_version }}
-      utils_tag_arg: ${{ steps.check-scramjet-utils.outputs.tag_arg }}
+      kaze_version_changed: ${{ steps.check-kaze.outputs.version_changed }}
+      kaze_new_version: ${{ steps.check-kaze.outputs.new_version }}
+      kaze_tag_arg: ${{ steps.check-kaze.outputs.tag_arg }}
+      controller_version_changed: ${{ steps.check-kaze-controller.outputs.version_changed }}
+      controller_new_version: ${{ steps.check-kaze-controller.outputs.new_version }}
+      controller_tag_arg: ${{ steps.check-kaze-controller.outputs.tag_arg }}
+      utils_version_changed: ${{ steps.check-kaze-utils.outputs.version_changed }}
+      utils_new_version: ${{ steps.check-kaze-utils.outputs.new_version }}
+      utils_tag_arg: ${{ steps.check-kaze-utils.outputs.tag_arg }}
       bootstrap_version_changed: ${{ steps.check-bootstrap.outputs.version_changed }}
       bootstrap_new_version: ${{ steps.check-bootstrap.outputs.new_version }}
       bootstrap_tag_arg: ${{ steps.check-bootstrap.outputs.tag_arg }}
@@ -47,12 +47,12 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Check the version (scramjet/core)
-        id: check-scramjet
+      - name: Check the version (kaze/core)
+        id: check-kaze
         run: |
           CURRENT_VERSION=$(jq -r .version packages/core/package.json)
           echo "Current version: $CURRENT_VERSION"
-          LATEST_VERSION=$(npm view @mercuryworkshop/scramjet versions --json | jq -r '.[-1]' || echo "0.0.0")
+          LATEST_VERSION=$(npm view @kaze/core versions --json | jq -r '.[-1]' || echo "0.0.0")
           echo "Latest NPM version: $LATEST_VERSION"
 
           if [ "$LATEST_VERSION" != "$CURRENT_VERSION" ];
@@ -68,12 +68,12 @@ jobs:
             echo "version_changed=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Check the version (scramjet/controller)
-        id: check-scramjet-controller
+      - name: Check the version (kaze/controller)
+        id: check-kaze-controller
         run: |
           CURRENT_VERSION=$(jq -r .version packages/controller/package.json)
           echo "Current version: $CURRENT_VERSION"
-          LATEST_VERSION=$(npm view @mercuryworkshop/scramjet-controller versions --json | jq -r '.[-1]' || echo "0.0.0")
+          LATEST_VERSION=$(npm view @kaze/controller versions --json | jq -r '.[-1]' || echo "0.0.0")
           echo "Latest NPM version: $LATEST_VERSION"
 
           if [ "$LATEST_VERSION" != "$CURRENT_VERSION" ];
@@ -89,12 +89,12 @@ jobs:
             echo "version_changed=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Check the version (scramjet/utils)
-        id: check-scramjet-utils
+      - name: Check the version (kaze/utils)
+        id: check-kaze-utils
         run: |
           CURRENT_VERSION=$(jq -r .version packages/utils/package.json)
           echo "Current version: $CURRENT_VERSION"
-          LATEST_VERSION=$(npm view @mercuryworkshop/scramjet-utils versions --json | jq -r '.[-1]' || echo "0.0.0")
+          LATEST_VERSION=$(npm view @kaze/utils versions --json | jq -r '.[-1]' || echo "0.0.0")
           echo "Latest NPM version: $LATEST_VERSION"
 
           if [ "$LATEST_VERSION" != "$CURRENT_VERSION" ];
@@ -115,7 +115,7 @@ jobs:
         run: |
           CURRENT_VERSION=$(jq -r .version packages/bootstrap/package.json)
           echo "Current version: $CURRENT_VERSION"
-          LATEST_VERSION=$(npm view @mercuryworkshop/proxy-bootstrap versions --json | jq -r '.[-1]' || echo "0.0.0")
+          LATEST_VERSION=$(npm view @kaze/bootstrap versions --json | jq -r '.[-1]' || echo "0.0.0")
           echo "Latest NPM version: $LATEST_VERSION"
 
           if [ "$LATEST_VERSION" != "$CURRENT_VERSION" ];
@@ -153,7 +153,7 @@ jobs:
           fi
 
   build:
-    name: Build Scramjet
+    name: Build Kaze
     runs-on: ubuntu-latest
 
     steps:
@@ -179,15 +179,15 @@ jobs:
           rewriter-path: packages/core/rewriter
           github-token: ${{ github.token }}
 
-      - name: Pack Scramjet
+      - name: Pack Kaze
         run: pnpm pack
         working-directory: packages/core
 
-      - name: Pack Scramjet Controller
+      - name: Pack Kaze Controller
         run: pnpm pack
         working-directory: packages/controller
 
-      - name: Pack Scramjet Utils
+      - name: Pack Kaze Utils
         run: pnpm pack
         working-directory: packages/utils
 
@@ -199,41 +199,41 @@ jobs:
         run: pnpm pack
         working-directory: packages/create-proxy-app
 
-      - name: Upload Artifact (scramjet/core)
+      - name: Upload Artifact (kaze/core)
         uses: actions/upload-artifact@v4
         with:
-          name: scramjet
+          name: kaze
           path: packages/core/dist/*
 
-      - name: Upload Artifact (scramjet/core) (packaged)
+      - name: Upload Artifact (kaze/core) (packaged)
         uses: actions/upload-artifact@v4
         with:
-          name: scramjet-package
-          path: packages/core/mercuryworkshop-scramjet-*.tgz
+          name: kaze-package
+          path: packages/core/kaze-*.tgz
 
-      - name: Upload Artifact (scramjet/controller)
+      - name: Upload Artifact (kaze/controller)
         uses: actions/upload-artifact@v4
         with:
-          name: scramjet-controller
+          name: kaze-controller
           path: packages/controller/dist/*
 
-      - name: Upload Artifact (scramjet/controller) (packaged)
+      - name: Upload Artifact (kaze/controller) (packaged)
         uses: actions/upload-artifact@v4
         with:
-          name: scramjet-controller-package
-          path: packages/controller/mercuryworkshop-scramjet-controller-*.tgz
+          name: kaze-controller-package
+          path: packages/controller/kaze-controller-*.tgz
 
-      - name: Upload Artifact (scramjet/utils)
+      - name: Upload Artifact (kaze/utils)
         uses: actions/upload-artifact@v4
         with:
-          name: scramjet-utils
+          name: kaze-utils
           path: packages/utils/dist/*
 
-      - name: Upload Artifact (scramjet/utils) (packaged)
+      - name: Upload Artifact (kaze/utils) (packaged)
         uses: actions/upload-artifact@v4
         with:
-          name: scramjet-utils-package
-          path: packages/utils/mercuryworkshop-scramjet-utils-*.tgz
+          name: kaze-utils-package
+          path: packages/utils/kaze-utils-*.tgz
 
       - name: Upload Artifact (proxy-bootstrap) (packaged)
         uses: actions/upload-artifact@v4
@@ -271,18 +271,18 @@ jobs:
       - name: Get artifacts
         uses: actions/download-artifact@v4
         with:
-          name: scramjet-package
+          name: kaze-package
           path: packages/core
 
       - name: Extract package
-        run: tar xvf mercuryworkshop-scramjet-*.tgz package --strip-components=1
+        run: tar xvf kaze-*.tgz package --strip-components=1
         working-directory: packages/core
 
       - name: Run package validation tests
         run: pnpm test:package
 
   tests:
-    name: Run Scramjet Tests
+    name: Run Kaze Tests
     runs-on: ubuntu-latest
     needs: [build, package-validation]
 
@@ -304,16 +304,16 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
-      - name: Get artifacts (scramjet/core)
+      - name: Get artifacts (kaze/core)
         uses: actions/download-artifact@v4
         with:
-          name: scramjet
+          name: kaze
           path: packages/core/dist
 
-      - name: Get artifacts (scramjet/controller)
+      - name: Get artifacts (kaze/controller)
         uses: actions/download-artifact@v4
         with:
-          name: scramjet-controller
+          name: kaze-controller
           path: packages/controller/dist
 
       - name: Install Playwright Chromium
@@ -364,13 +364,13 @@ jobs:
       - name: Get artifacts
         uses: actions/download-artifact@v4
         with:
-          name: scramjet-package
+          name: kaze-package
           path: .
 
       - name: Get artifacts
         uses: actions/download-artifact@v4
         with:
-          name: scramjet-controller-package
+          name: kaze-controller-package
           path: .
 
       - name: Release unstable build to GitHub
@@ -380,20 +380,20 @@ jobs:
           tag: latest
           commit: main
           body: "${{ github.event.head_commit.url }} ${{ github.event.head_commit.message }}"
-          artifacts: "mercuryworkshop-scramjet-*.tgz,mercuryworkshop-scramjet-controller-*.tgz"
+          artifacts: "kaze-*.tgz,kaze-controller-*.tgz"
           prerelease: true
 
-      - name: Release tagged version to GitHub (scramjet/core)
-        if: needs.version-check.outputs.scramjet_version_changed == 'true'
+      - name: Release tagged version to GitHub (kaze/core)
+        if: needs.version-check.outputs.kaze_version_changed == 'true'
         uses: ncipollo/release-action@v1
         with:
-          name: "${{ needs.version-check.outputs.scramjet_new_version }}"
-          tag: "v${{ needs.version-check.outputs.scramjet_new_version }}"
+          name: "${{ needs.version-check.outputs.kaze_new_version }}"
+          tag: "v${{ needs.version-check.outputs.kaze_new_version }}"
           commit: main
           body: "${{ github.event.head_commit.url }} ${{ github.event.head_commit.message }}"
-          artifacts: "mercuryworkshop-scramjet-*.tgz"
+          artifacts: "kaze-*.tgz"
 
-      - name: Release tagged version to GitHub (scramjet/controller)
+      - name: Release tagged version to GitHub (kaze/controller)
         if: needs.version-check.outputs.controller_version_changed == 'true'
         uses: ncipollo/release-action@v1
         with:
@@ -401,15 +401,15 @@ jobs:
           tag: "v${{ needs.version-check.outputs.controller_new_version }}-controller"
           commit: main
           body: "${{ github.event.head_commit.url }} ${{ github.event.head_commit.message }}"
-          artifacts: "mercuryworkshop-scramjet-controller-*.tgz"
+          artifacts: "kaze-controller-*.tgz"
           makeLatest: false
 
   publish:
-    name: Publish Scramjet to NPM
+    name: Publish Kaze to NPM
     runs-on: ubuntu-latest
     needs: [version-check, build, package-validation, tests, rewritertests]
     permissions: write-all
-    if: ${{ (github.ref == 'refs/heads/main') && (needs.version-check.outputs.scramjet_version_changed == 'true' || needs.version-check.outputs.controller_version_changed == 'true' || needs.version-check.outputs.bootstrap_version_changed == 'true' || needs.version-check.outputs.create_proxy_app_version_changed == 'true' || needs.version-check.outputs.utils_version_changed == 'true') }}
+    if: ${{ (github.ref == 'refs/heads/main') && (needs.version-check.outputs.kaze_version_changed == 'true' || needs.version-check.outputs.controller_version_changed == 'true' || needs.version-check.outputs.bootstrap_version_changed == 'true' || needs.version-check.outputs.create_proxy_app_version_changed == 'true' || needs.version-check.outputs.utils_version_changed == 'true') }}
 
     steps:
       - name: Setup pnpm
@@ -423,23 +423,23 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           registry-url: "https://registry.npmjs.org"
 
-      - name: Get artifacts (scramjet/core)
+      - name: Get artifacts (kaze/core)
         uses: actions/download-artifact@v4
         with:
-          name: scramjet-package
+          name: kaze-package
           path: .
 
-      - name: Get artifacts (scramjet/controller)
+      - name: Get artifacts (kaze/controller)
         uses: actions/download-artifact@v4
         with:
-          name: scramjet-controller-package
+          name: kaze-controller-package
           path: .
 
-      - name: Get artifacts (scramjet/utils)
+      - name: Get artifacts (kaze/utils)
         if: needs.version-check.outputs.utils_version_changed == 'true'
         uses: actions/download-artifact@v4
         with:
-          name: scramjet-utils-package
+          name: kaze-utils-package
           path: .
 
       - name: Get artifacts (proxy-bootstrap)
@@ -456,17 +456,17 @@ jobs:
           name: create-proxy-app-package
           path: .
 
-      - name: Publish Scramjet
-        if: needs.version-check.outputs.scramjet_version_changed == 'true'
-        run: pnpm stage publish mercuryworkshop-scramjet-${{ needs.version-check.outputs.scramjet_new_version }}.tgz --access public --provenance ${{ needs.version-check.outputs.scramjet_tag_arg }}
+      - name: Publish Kaze
+        if: needs.version-check.outputs.kaze_version_changed == 'true'
+        run: pnpm stage publish kaze-${{ needs.version-check.outputs.kaze_new_version }}.tgz --access public --provenance ${{ needs.version-check.outputs.kaze_tag_arg }}
 
-      - name: Publish Scramjet Controller
+      - name: Publish Kaze Controller
         if: needs.version-check.outputs.controller_version_changed == 'true'
-        run: pnpm stage publish mercuryworkshop-scramjet-controller-${{ needs.version-check.outputs.controller_new_version }}.tgz --access public --provenance ${{ needs.version-check.outputs.controller_tag_arg }}
+        run: pnpm stage publish kaze-controller-${{ needs.version-check.outputs.controller_new_version }}.tgz --access public --provenance ${{ needs.version-check.outputs.controller_tag_arg }}
 
-      - name: Publish Scramjet Utils
+      - name: Publish Kaze Utils
         if: needs.version-check.outputs.utils_version_changed == 'true'
-        run: pnpm stage publish mercuryworkshop-scramjet-utils-${{ needs.version-check.outputs.utils_new_version }}.tgz --access public --provenance ${{ needs.version-check.outputs.utils_tag_arg }}
+        run: pnpm stage publish kaze-utils-${{ needs.version-check.outputs.utils_new_version }}.tgz --access public --provenance ${{ needs.version-check.outputs.utils_tag_arg }}
 
       - name: Publish Proxy Bootstrap
         if: needs.version-check.outputs.bootstrap_version_changed == 'true'
@@ -500,22 +500,22 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
-      - name: Get artifacts (scramjet/core)
+      - name: Get artifacts (kaze/core)
         uses: actions/download-artifact@v4
         with:
-          name: scramjet
+          name: kaze
           path: packages/core/dist
 
-      - name: Get artifacts (scramjet/controller)
+      - name: Get artifacts (kaze/controller)
         uses: actions/download-artifact@v4
         with:
-          name: scramjet-controller
+          name: kaze-controller
           path: packages/controller/dist
 
-      - name: Get artifacts (scramjet/utils)
+      - name: Get artifacts (kaze/utils)
         uses: actions/download-artifact@v4
         with:
-          name: scramjet-utils
+          name: kaze-utils
           path: packages/utils/dist
 
       - name: Build Frontend

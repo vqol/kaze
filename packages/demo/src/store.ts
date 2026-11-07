@@ -22,7 +22,7 @@ export const demoSettingsStore = createStore(
 		maxRequests: DEFAULT_MAX_REQUESTS,
 	},
 	{
-		ident: "scramjet-demo-settings",
+		ident: "kaze-demo-settings",
 		backing: "localstorage",
 		autosave: "auto",
 	}

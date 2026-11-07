@@ -28,7 +28,7 @@ async function template(template: string, projectName: string) {
 			await copyLocalTemplate(template, projectName);
 		} else {
 			await downloadTemplate(
-				`github:MercuryWorkshop/scramjet/packages/create-proxy-app/templates/${template}`,
+				`github:MercuryWorkshop/kaze/packages/create-proxy-app/templates/${template}`,
 				{
 					force: false,
 					provider: "github",

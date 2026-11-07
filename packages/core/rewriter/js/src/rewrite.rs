@@ -66,7 +66,7 @@ pub(crate) enum RewriteType<'alloc: 'data, 'data> {
 	Eval {
 		inner: Span,
 	},
-	/// `((t)=>$scramjet$tryset(name,"op",t)||(name op t))(rhs)`
+	/// `((t)=>$kaze$tryset(name,"op",t)||(name op t))(rhs)`
 	Assignment {
 		name: Atom<'data>,
 		rhs: Span,

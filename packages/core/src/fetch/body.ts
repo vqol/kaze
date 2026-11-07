@@ -1,9 +1,9 @@
 import { BareResponse } from "@mercuryworkshop/proxy-transports";
 import {
 	BodyType,
-	ScramjetFetchHandler,
-	ScramjetFetchParsed,
-	ScramjetFetchRequest,
+	KazeFetchHandler,
+	KazeFetchParsed,
+	KazeFetchRequest,
 } from ".";
 import {
 	flagEnabled,
@@ -18,9 +18,9 @@ import { sniffEncoding } from "@/shared/sniffEncoding";
 import { _TextDecoder } from "@/shared/snapshot";
 
 export async function rewriteBody(
-	handler: ScramjetFetchHandler,
-	request: ScramjetFetchRequest,
-	parsed: ScramjetFetchParsed,
+	handler: KazeFetchHandler,
+	request: KazeFetchRequest,
+	parsed: KazeFetchParsed,
 	response: BareResponse
 ): Promise<BodyType> {
 	switch (parsed.destination) {

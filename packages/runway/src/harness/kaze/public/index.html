@@ -1,14 +1,14 @@
 <!doctype html>
 <html>
 	<head>
-		<title>Scramjet Test Harness</title>
-		<script src="/scramjet/scramjet.js"></script>
+		<title>Kaze Test Harness</title>
+		<script src="/kaze/kaze.js"></script>
 		<script src="/controller/controller.api.js"></script>
 		<script src="/libcurl/index.js"></script>
 		<script src="/runway-cleartext-https-transport.js"></script>
 	</head>
 	<body>
-		<h1>Scramjet Test Harness</h1>
+		<h1>Kaze Test Harness</h1>
 		<div id="status">Initializing...</div>
 		<button id="reload-btn" style="display: none; margin: 8px 0">
 			🔄 Reload Test
@@ -22,11 +22,11 @@
 			const statusEl = document.getElementById("status");
 			const testframe = document.getElementById("testframe");
 			const reloadBtn = document.getElementById("reload-btn");
-			const { Controller } = $scramjetController;
+			const { Controller } = $kazeController;
 			const LibcurlClient = window.LibcurlTransport.LibcurlClient;
 
 			let controller;
-			let scramjetFrame;
+			let kazeFrame;
 
 			async function init() {
 				statusEl.textContent = "Registering service worker...";
@@ -80,8 +80,8 @@
 
 				await controller.ready;
 
-				scramjetFrame = controller.createFrame(testframe);
-				window.__runwayScramjetFrame = scramjetFrame;
+				kazeFrame = controller.createFrame(testframe);
+				window.__runwayKazeFrame = kazeFrame;
 
 				statusEl.textContent = "Ready - waiting for test...";
 
@@ -92,11 +92,11 @@
 					reloadBtn.style.display = "inline-block";
 					// injectTestFunctions();
 					console.log("navigating to", url);
-					scramjetFrame.go(url);
+					kazeFrame.go(url);
 				};
 
 				window.__runwayGetProxiedUrl = (url) => {
-					return $scramjet.rewriteUrl(url, scramjetFrame.context, {
+					return $kaze.rewriteUrl(url, kazeFrame.context, {
 						origin: new URL(location.href),
 						base: new URL(location.href),
 					});
