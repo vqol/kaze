@@ -333,12 +333,16 @@
 			</form>
 		</header>
 		<div id="progress"></div>
-		<iframe id="frame" title="kaze"></iframe>
 
 		<script>
 			const $ = (id) => document.getElementById(id);
 			const status = $("status");
-			const frameEl = $("frame");
+			// created from script: firefox restores a static iframe's old src on
+			// reload, which points at a controller id that no longer exists
+			const frameEl = document.createElement("iframe");
+			frameEl.id = "frame";
+			frameEl.title = "kaze";
+			document.body.append(frameEl);
 			const progress = $("progress");
 			const SEARCH = "https://duckduckgo.com/?q=";
 			const WISP = `${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/wisp/`;
@@ -354,7 +358,11 @@
 				if (!("serviceWorker" in navigator))
 					throw new Error("service workers unsupported");
 				status.textContent = "starting";
-				const reg = await navigator.serviceWorker.register("/sw.js");
+				const reg = await navigator.serviceWorker.register("/sw.js", {
+					// always re-check importScripts (the controller) for updates
+					updateViaCache: "none",
+				});
+				reg.update().catch(() => {});
 				await navigator.serviceWorker.ready;
 				if (!navigator.serviceWorker.controller) {
 					await new Promise((r) =>
