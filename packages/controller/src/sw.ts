@@ -155,18 +155,65 @@ addEventListener("message", (e) => {
 		tabs.splice(existing, 1);
 	}
 	tabs.push(new ControllerReference(init.prefix, init.id, e.ports[0]));
+	for (const waiter of tabWaiters.splice(0)) waiter();
 });
 
+// Base path every controller prefix lives under (Controller config.prefix).
+// Needed because browsers kill idle service workers: after a restart `tabs` is
+// empty until the pages answer the revive broadcast, and the fetch that woke
+// the worker would otherwise fall through to the network (404).
+const prefixBases = ["/~/kz/"];
+export function addPrefixBase(base: string) {
+	if (!prefixBases.includes(base)) prefixBases.push(base);
+}
+
+const tabWaiters: (() => void)[] = [];
+let lastRevive = 0;
+async function broadcastRevive() {
+	// at most one broadcast per second
+	if (Date.now() - lastRevive < 1000) return;
+	lastRevive = Date.now();
+	for (const client of await clients.matchAll()) {
+		client.postMessage({ $controller$swrevive: {} });
+	}
+}
+
+async function findTab(pathname: string, timeout = 5000) {
+	const deadline = Date.now() + timeout;
+	for (;;) {
+		const tab = tabs.find((tab) => pathname.startsWith(tab.prefix));
+		if (tab) return tab;
+		const left = deadline - Date.now();
+		if (left <= 0) return undefined;
+		void broadcastRevive();
+		await new Promise<void>((resolve) => {
+			const timer = setTimeout(resolve, Math.min(left, 1000));
+			tabWaiters.push(() => {
+				clearTimeout(timer);
+				resolve();
+			});
+		});
+	}
+}
+
 export function shouldRoute(event: FetchEvent): boolean {
-	const url = new URL(event.request.url);
-	const tab = tabs.find((tab) => url.pathname.startsWith(tab.prefix));
-	return tab !== undefined;
+	const pathname = new URL(event.request.url).pathname;
+	return (
+		tabs.some((tab) => pathname.startsWith(tab.prefix)) ||
+		prefixBases.some((base) => pathname.startsWith(base))
+	);
 }
 
 export async function route(event: FetchEvent): Promise<Response> {
 	try {
 		const url = new URL(event.request.url);
-		const tab = tabs.find((tab) => url.pathname.startsWith(tab.prefix))!;
+		const tab = await findTab(url.pathname);
+		if (!tab) {
+			return new Response(
+				"kaze: no controller for this page (was the tab closed?)",
+				{ status: 503 }
+			);
+		}
 		const client = await clients.get(event.clientId);
 
 		const rawheaders: RawHeaders = [...event.request.headers];
@@ -225,12 +272,11 @@ addEventListener("activate", (event: ExtendableEvent) => {
 
 // the only way to know if a service worker has suddenly died is if this code runs again
 // notify all clients to send over their messageports again
-setTimeout(async () => {
+// (shares broadcastRevive's rate limit: each revive makes the page replace its
+// message port, which would drop any request already in flight on the old one)
+setTimeout(() => {
+	if (tabs.length > 0) return; // a fetch already triggered the revive
 	console.log("service worker activated, notifying clients to revive");
-	for (const client of await clients.matchAll()) {
-		client.postMessage({
-			$controller$swrevive: {},
-		});
-	}
+	void broadcastRevive();
 	// short delay is apparently needed
 }, 100);
