@@ -171,6 +171,15 @@ export async function route(event: FetchEvent): Promise<Response> {
 
 		const rawheaders: RawHeaders = [...event.request.headers];
 
+		// Firefox doesn't implement Request.body, so forwarding the stream sent
+		// every POST/PUT upstream with an empty body (youtube get_watch 400,
+		// discord remote-auth ticket exchange). Buffer it instead; works everywhere.
+		const method = event.request.method;
+		const body: ArrayBuffer | null =
+			method === "GET" || method === "HEAD"
+				? null
+				: await event.request.arrayBuffer();
+
 		const response = await tab.rpc.call(
 			"request",
 			{
@@ -180,18 +189,14 @@ export async function route(event: FetchEvent): Promise<Response> {
 				mode: event.request.mode,
 				referrer: event.request.referrer,
 				method: event.request.method,
-				body: event.request.body,
+				body,
 				cache: event.request.cache,
 				forceCrossOriginIsolated: false,
 				initialHeaders: rawheaders,
 				rawClientUrl: client ? client.url : undefined,
 				clientId: event.clientId || event.resultingClientId,
 			},
-			event.request.body instanceof ReadableStream ||
-				// @ts-expect-error the types for fetchevent are messed up
-				event.request.body instanceof ArrayBuffer
-				? [event.request.body]
-				: undefined
+			body && body.byteLength > 0 ? [body] : undefined
 		);
 
 		return new Response(response.body, {
