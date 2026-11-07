@@ -7,7 +7,7 @@ import {
 } from "./testcommon.ts";
 import { glob } from "node:fs/promises";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { setupRunwayPageBindings } from "./cdp-page.ts";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -20,7 +20,7 @@ async function discoverTests(): Promise<Test[]> {
 	const tests: Test[] = [];
 	for await (const file of testFiles) {
 		const fullPath = path.join(__dirname, "tests", file);
-		const module = await import(fullPath);
+		const module = await import(pathToFileURL(fullPath).href);
 		if (module.default) {
 			if (Array.isArray(module.default)) {
 				tests.push(...module.default);

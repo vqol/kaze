@@ -41,6 +41,31 @@ export const Array_of = globalThis.Array.of;
 export const JSON_parse = globalThis.JSON.parse;
 export const JSON_stringify = globalThis.JSON.stringify;
 
+export const ArrayBuffer_isView = globalThis.ArrayBuffer.isView;
+const ArrayBuffer_prototype_byteLength =
+	globalThis.Object.getOwnPropertyDescriptor(
+		globalThis.ArrayBuffer.prototype,
+		"byteLength"
+	)!.get!;
+/** realm-independent ArrayBuffer check (throws on anything else) */
+export function isArrayBuffer(value: unknown): value is ArrayBuffer {
+	try {
+		Function_prototype_call.call(ArrayBuffer_prototype_byteLength, value);
+		return true;
+	} catch {
+		return false;
+	}
+}
+export const WebAssembly_Module = globalThis.WebAssembly.Module;
+export const Uint8Array_fromBase64:
+	| ((base64: string) => Uint8Array)
+	| undefined = (globalThis.Uint8Array as any).fromBase64?.bind(
+	globalThis.Uint8Array
+);
+export const Uint8Array_prototype_toBase64:
+	| ((this: Uint8Array) => string)
+	| undefined = (globalThis.Uint8Array.prototype as any).toBase64;
+
 const textEncoder = new TextEncoder();
 export const TextEncoder_encode = textEncoder.encode.bind(textEncoder);
 
@@ -203,6 +228,8 @@ export type _WeakMap<K extends object, V extends object> = Wrapped<
 	WeakMap<K, V>
 >;
 export const _Uint8Array = makeWrap(globalThis.Uint8Array);
+// the Wrapped<> constructor typing picks the zero-arg overload for typed arrays
+export const Uint8Array_ctor = _Uint8Array as unknown as Uint8ArrayConstructor;
 export type _Uint8Array = Wrapped<Uint8Array>;
 export const _TextDecoder = makeWrap(globalThis.TextDecoder);
 export type _TextDecoder = Wrapped<TextDecoder>;

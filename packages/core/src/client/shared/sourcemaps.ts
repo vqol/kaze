@@ -2,8 +2,11 @@ import {
 	Object_defineProperty,
 	Number_isSafeInteger,
 	Error,
+	ArrayBuffer_isView,
+	_Uint8Array,
 } from "@/shared/snapshot";
 import { SCRAMJETCLIENT, SCRAMJETCLIENTNAME } from "@/symbols";
+import { base64ToBytes } from "@/shared/util";
 import { ProxyCtx, ScramjetClient } from "@client/index";
 
 enum RewriteType {
@@ -25,7 +28,10 @@ type Rewrite = {
 	  }
 );
 
-export type SourceMaps = Record<string, Rewrite[]>;
+// raw maps are stored as pushed (base64 string / bytes) and only parsed the
+// first time Function.prototype.toString needs them, which is rare
+type RawSourceMap = string | Uint8Array | Array<number>;
+export type SourceMaps = Record<string, Rewrite[] | RawSourceMap>;
 
 function getEnd(rewrite: Rewrite): number {
 	if (rewrite.type === RewriteType.Insert) {
@@ -36,13 +42,38 @@ function getEnd(rewrite: Rewrite): number {
 	throw "unreachable";
 }
 
-function registerRewrites(
+function getRewrites(
 	client: ScramjetClient,
-	buf: Array<number>,
 	tag: string
-) {
-	const sourcemap = Uint8Array.from(buf);
-	const view = new DataView(sourcemap.buffer);
+): Rewrite[] | undefined {
+	const entry = client.box.sourcemaps[tag];
+	if (entry === undefined) return undefined;
+	if (
+		typeof entry === "string" ||
+		ArrayBuffer_isView(entry) ||
+		(entry.length > 0 && typeof entry[0] === "number")
+	) {
+		const rewrites = parseRewrites(entry as RawSourceMap);
+		client.box.sourcemaps[tag] = rewrites;
+
+		return rewrites;
+	}
+
+	return entry as Rewrite[];
+}
+
+function parseRewrites(raw: RawSourceMap): Rewrite[] {
+	const sourcemap =
+		typeof raw === "string"
+			? base64ToBytes(raw)
+			: ArrayBuffer_isView(raw)
+				? (raw as Uint8Array)
+				: _Uint8Array.from(raw as Array<number>);
+	const view = new DataView(
+		sourcemap.buffer,
+		sourcemap.byteOffset,
+		sourcemap.byteLength
+	);
 	const decoder = new TextDecoder("utf-8");
 
 	const rewrites: Rewrite[] = [];
@@ -75,7 +106,7 @@ function registerRewrites(
 		}
 	}
 
-	client.box.sourcemaps[tag] = rewrites;
+	return rewrites;
 }
 
 const SCRAMTAG = "/*scramtag ";
@@ -121,7 +152,7 @@ function doUnrewrite(
 
 	const fnStart = tagStart - tagOffset;
 	const fnEnd = fnStart + stringified.length;
-	const rewrites = client.box.sourcemaps[tag];
+	const rewrites = getRewrites(client, tag);
 
 	if (!rewrites) {
 		dbg.warn("failed to get rewrites for tag", tag);
@@ -165,18 +196,15 @@ function doUnrewrite(
 	return ctx.return(newString);
 }
 
-export const enabled = (client: ScramjetClient) =>
-	client.flagEnabled("sourcemaps");
-
+// always installed: besides unrewriting, the toString trap below is what keeps
+// scramjet's proxies of native functions stringifying as native code
 export default function (client: ScramjetClient, self: Self) {
+	const sourcemaps = client.flagEnabled("sourcemaps");
 	// every script will push a sourcemap
 	Object_defineProperty(self, client.config.globals.pushsourcemapfn, {
-		value: (buf: Array<number>, tag: string) => {
-			// const before = performance.now();
-			registerRewrites(client, buf, tag);
-			// if (client.flagEnabled("rewriterLogs")) {
-			// 	dbg.time(client.meta, before, `scramtag parse for ${tag}`);
-			// }
+		value: (buf: RawSourceMap, tag: string) => {
+			// parsed lazily in getRewrites
+			client.box.sourcemaps[tag] = buf;
 		},
 		enumerable: false,
 		writable: false,
@@ -195,6 +223,8 @@ export default function (client: ScramjetClient, self: Self) {
 				// since we know it's a native function, no need to unrewrite
 				return;
 			}
+			// without sourcemaps no scramtags are emitted, nothing to unrewrite
+			if (!sourcemaps) return;
 			// const before = performance.now();
 			doUnrewrite(client, ctx);
 			// dbg.time(client.meta, before, `scramtag unrewrite for ${ctx.fn.name}`);

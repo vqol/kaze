@@ -374,6 +374,7 @@ impl<'alloc: 'data, 'data> JsChanges<'alloc, 'data> {
 		cfg: &'data Config,
 		flags: &'data Flags,
 	) -> Result<TransformResult<'alloc>, RewriterError> {
-		Ok(self.inner.perform(js, &(cfg, flags), true)?)
+		// the map is only consumed when sourcemaps are on; skip building it otherwise
+		Ok(self.inner.perform(js, &(cfg, flags), flags.do_sourcemaps)?)
 	}
 }

@@ -106,6 +106,10 @@ impl NativeRewriter {
 	pub fn unrewrite(res: &RewriteResult) -> Vec<u8> {
 		let js = res.js.as_slice();
 		let mut map = res.sourcemap.as_slice();
+		if map.is_empty() {
+			// sourcemaps disabled, nothing to unrewrite with
+			return res.js.to_vec();
+		}
 		let rewrite_cnt = map.get_u32_le();
 		let mut rewrites = Vec::with_capacity(rewrite_cnt as usize);
 

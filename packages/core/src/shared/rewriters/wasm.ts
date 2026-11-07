@@ -6,28 +6,67 @@ import { flagEnabled, ScramjetContext } from "@/shared";
 export type { JsRewriterOutput, Rewriter };
 
 import { URLMeta } from "@rewriters/url";
-import { Error, TextDecoder_decode } from "@/shared/snapshot";
+import {
+	ArrayBuffer_isView,
+	Error,
+	isArrayBuffer,
+	TextDecoder_decode,
+	WebAssembly_Module,
+	Uint8Array_ctor,
+} from "@/shared/snapshot";
 
-let wasm_u8: Uint8Array;
-export function setWasm(u8: Uint8Array | ArrayBuffer) {
-	wasm_u8 = u8 instanceof Uint8Array ? u8 : new Uint8Array(u8);
+let wasm_u8: Uint8Array | undefined;
+let wasm_module: WebAssembly.Module | undefined;
+// set once the wasm instance exists; initWasm is called on every rewrite so
+// this must stay a cheap early return (compiling the module is tens of ms)
+let wasm_ready = false;
+
+/**
+ * Provide the rewriter wasm, either as raw bytes or as an already compiled
+ * WebAssembly.Module (preferred: modules can be shared between same-origin
+ * realms/workers via postMessage and skip recompilation entirely).
+ */
+export function setWasm(wasm: Uint8Array | ArrayBuffer | WebAssembly.Module) {
+	if (wasm_ready) return;
+	if (ArrayBuffer_isView(wasm)) {
+		wasm_u8 = wasm as Uint8Array;
+		wasm_module = undefined;
+	} else if (isArrayBuffer(wasm)) {
+		wasm_u8 = new Uint8Array_ctor(wasm);
+		wasm_module = undefined;
+	} else {
+		wasm_module = wasm as WebAssembly.Module;
+		wasm_u8 = undefined;
+	}
 }
 
-const MAGIC = "\0asm".split("").map((x) => x.charCodeAt(0));
-
-function initWasm() {
-	if (!(wasm_u8 instanceof Uint8Array))
+/** The compiled rewriter module, compiling it if needed. */
+export function getWasmModule(): WebAssembly.Module {
+	if (wasm_module) return wasm_module;
+	if (!wasm_u8)
 		throw new Error("rewriter wasm not found (was setWasm called?)");
 
-	if (![...wasm_u8.slice(0, 4)].every((x, i) => x === MAGIC[i]))
+	if (
+		wasm_u8[0] !== 0x00 ||
+		wasm_u8[1] !== 0x61 ||
+		wasm_u8[2] !== 0x73 ||
+		wasm_u8[3] !== 0x6d
+	)
 		throw new Error(
 			"rewriter wasm does not have wasm magic (was it fetched correctly?)\nrewriter wasm contents: " +
 				TextDecoder_decode(wasm_u8)
 		);
 
-	initSync({
-		module: new WebAssembly.Module(wasm_u8 as unknown as BufferSource),
-	});
+	wasm_module = new WebAssembly_Module(wasm_u8 as unknown as BufferSource);
+	// the module holds its own copy; drop the bytes
+	wasm_u8 = undefined;
+	return wasm_module;
+}
+
+function initWasm() {
+	if (wasm_ready) return;
+	initSync({ module: getWasmModule() });
+	wasm_ready = true;
 }
 
 type RewriterBox = { rewriter: Rewriter; inUse: boolean };

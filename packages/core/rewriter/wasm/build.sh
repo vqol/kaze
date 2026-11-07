@@ -35,11 +35,17 @@ fi
 
 (
 	export RUSTFLAGS='-Zlocation-detail=none -Zfmt-debug=none'
+	# simd128 lets memchr / oxc's lexer use wasm SIMD. NO_SIMD=1 to opt out
+	if [ "${NO_SIMD:-0}" != "1" ]; then
+		export RUSTFLAGS="${RUSTFLAGS} -C target-feature=+simd128,+bulk-memory"
+	fi
 	if [ "${OPTIMIZE_FOR_SIZE:-0}" = "1" ]; then
 		export RUSTFLAGS="${RUSTFLAGS} -C opt-level=z"
 	fi
 	STD_FEATURES=""
-	if [ "${OPTIMIZE_FOR_SPEED:-0}" = "0" ]; then
+	# std is built for speed unless OPTIMIZE_FOR_SIZE=1; size-optimized std
+	# slows memcpy and friends, which the rewriter's splice loop leans on
+	if [ "${OPTIMIZE_FOR_SIZE:-0}" = "1" ] && [ "${OPTIMIZE_FOR_SPEED:-0}" = "0" ]; then
 		STD_FEATURES="${STD_FEATURES},optimize_for_size"
 	fi
 	cargo +nightly build --release --target wasm32-unknown-unknown \
@@ -107,8 +113,17 @@ wasm-snip rewriter/wasm/out/wasm_bg.wasm -o rewriter/wasm/out/wasm_snipped.wasm 
 if [ "${RELEASE:-0}" = "1" ]; then
 	(
 		G="--generate-global-effects"
+		if [ "${OPTIMIZE_FOR_SIZE:-0}" != "1" ]; then
+			# speed (default): the size chain below ends on -Oz, trading runtime for bytes
+			# shellcheck disable=SC2086
+			time wasm-opt $WASMOPTFLAGS --enable-simd --enable-bulk-memory \
+				rewriter/wasm/out/wasm_snipped.wasm -o rewriter/wasm/out/optimized.wasm \
+				--converge -tnh --vacuum \
+				$G -O4 $G --flatten $G --rereloop $G -O4 $G -O4 $G -O3
+			exit 0
+		fi
 		# shellcheck disable=SC2086
-		time wasm-opt $WASMOPTFLAGS \
+		time wasm-opt $WASMOPTFLAGS --enable-simd --enable-bulk-memory \
 			rewriter/wasm/out/wasm_snipped.wasm -o rewriter/wasm/out/optimized.wasm \
 			--converge -tnh --vacuum \
 			$G -O4 $G --flatten $G --rereloop $G -O4 $G -O4 $G -O4 \

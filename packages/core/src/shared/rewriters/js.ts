@@ -1,15 +1,9 @@
-import { flagEnabled, ScramjetContext } from "@/shared";
+import { resolveFlags, ScramjetContext } from "@/shared";
 import { URLMeta } from "@rewriters/url";
 
 import { getRewriter, JsRewriterOutput } from "@rewriters/wasm";
-import {
-	Array_from,
-	TextDecoder_decode,
-	_RegExp,
-	_Uint8Array,
-	Object_keys,
-	Performance_now,
-} from "../snapshot";
+import { bytesToBase64 } from "@/shared/util";
+import { TextDecoder_decode, _RegExp, Performance_now } from "../snapshot";
 
 // eslint-disable-next-line scramjet-core/no-globals
 Error.stackTraceLimit = 50;
@@ -29,10 +23,7 @@ function rewriteJsWasm(
 ): RewriterResult {
 	const [rewriter, ret] = getRewriter(context, meta);
 
-	const flagsobj = {};
-	for (const flag of Object_keys(context.config.flags)) {
-		flagsobj[flag] = flagEnabled(flag as any, context, meta.base);
-	}
+	const flagsobj = resolveFlags(context, meta.base);
 
 	try {
 		let out: JsRewriterOutput;
@@ -76,7 +67,7 @@ function rewriteJsWasm(
 
 		// 	return { js: input, tag: "", map: null };
 		// }
-		if (flagEnabled("rewriterLogs", context, meta.base)) {
+		if (flagsobj.rewriterLogs) {
 			dbg.time(meta, before, `oxc rewrite for "${source || "(unknown)"}"`);
 		}
 
@@ -110,32 +101,34 @@ export function rewriteJs(
 	meta: URLMeta,
 	isModule = false
 ): string | Uint8Array {
+	const flags = resolveFlags(context, meta.base);
 	try {
 		const res = rewriteJsInner(js, url, context, meta, isModule);
 		let newjs = res.js;
 
-		if (flagEnabled("sourcemaps", context, meta.base)) {
+		if (flags.sourcemaps && res.map) {
 			const pushmap = globalThis[context.config.globals.pushsourcemapfn];
 			if (pushmap) {
-				pushmap(Array_from(res.map), res.tag);
+				pushmap(res.map, res.tag);
 			} else {
-				// TODO: how do we check instanceof here?
-				if (typeof newjs !== "string") {
-					newjs = TextDecoder_decode(newjs);
-				}
-				const sourcemapfn = `${context.config.globals.pushsourcemapfn}([${res.map.join(",")}], "${res.tag}");`;
+				const text =
+					typeof newjs === "string" ? newjs : TextDecoder_decode(newjs);
+				// base64 string literal: ~1.33x the map size and a single string
+				// for the engine to scan, instead of a [1,2,3,...] array literal
+				// (~3.5x the size, one element per byte); decoded lazily client side
+				const sourcemapfn = `${context.config.globals.pushsourcemapfn}("${bytesToBase64(res.map)}", "${res.tag}");`;
 
 				// don't put the sourcemap call before "use strict"
 				const strictMode = new _RegExp(/^\s*(['"])use strict\1;?/);
-				if (strictMode.test(newjs)) {
-					newjs = newjs.replace(strictMode, `$&\n${sourcemapfn}`);
+				if (strictMode.test(text)) {
+					newjs = text.replace(strictMode, `$&\n${sourcemapfn}`);
 				} else {
-					newjs = `${sourcemapfn}\n${newjs}`;
+					newjs = `${sourcemapfn}\n${text}`;
 				}
 			}
 		}
 
-		if (flagEnabled("rewriterLogs", context, meta.base)) {
+		if (flags.rewriterLogs) {
 			for (const error of res.errors) {
 				dbg.error("oxc parse error", error);
 			}
@@ -149,7 +142,7 @@ export function rewriteJs(
 			err.message,
 			typeof js !== "string" ? TextDecoder_decode(js) : js
 		);
-		if (flagEnabled("allowInvalidJs", context, meta.base)) {
+		if (flags.allowInvalidJs) {
 			return js;
 		} else {
 			throw err;

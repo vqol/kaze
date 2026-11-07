@@ -38,7 +38,7 @@ export const defaultConfig: ScramjetConfig = {
 		captureErrors: false,
 		cleanErrors: false,
 		scramitize: false,
-		sourcemaps: true,
+		sourcemaps: false,
 		destructureRewrites: true,
 		allowInvalidJs: true,
 		debugTrampolines: false,

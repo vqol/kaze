@@ -1,6 +1,6 @@
 import { glob, mkdir, writeFile, readFile } from "node:fs/promises";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { isDeepStrictEqual } from "node:util";
 import { chromium } from "playwright";
 import type { Page, Browser, BrowserContext } from "playwright";
@@ -182,7 +182,7 @@ async function discoverTests(): Promise<Test[]> {
 			continue;
 		}
 		const fullPath = path.join(__dirname, "tests", file);
-		const module = await import(fullPath);
+		const module = await import(pathToFileURL(fullPath).href);
 		if (module.default) {
 			// Handle both single test and array of tests
 			if (Array.isArray(module.default)) {
@@ -764,6 +764,9 @@ async function main() {
 
 		browser = await chromium.launch({
 			headless: process.env.HEADED !== "1",
+			// e.g. RUNWAY_CHANNEL=chrome to use an installed Chrome instead of
+			// playwright's downloaded chromium
+			channel: process.env.RUNWAY_CHANNEL || undefined,
 		});
 	} else {
 		console.log("🧪 Direct tests only: skipping harness/browser startup\n");
