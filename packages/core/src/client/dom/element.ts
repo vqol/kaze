@@ -5,6 +5,8 @@ import {
 	Object_keys,
 	Object_defineProperty,
 	atob,
+	String_indexOf,
+	_Map,
 } from "@/shared/snapshot";
 import { bytesToBase64 } from "@/shared/util";
 import { rewriteCss, unrewriteCss } from "@rewriters/css";
@@ -283,29 +285,45 @@ export default function (client: KazeClient, self: typeof window) {
 		},
 	});
 
+	// tag -> attribute -> rule: the rule scan used to run on every call
+	const attributeRules = new _Map<string, Map<string, any>>();
+	const setAttributeRule = (rawTag: string, name: string) => {
+		let forTag = attributeRules.get(rawTag);
+		if (!forTag) attributeRules.set(rawTag, (forTag = new _Map()));
+		let rule = forTag.get(name);
+		if (rule === undefined) {
+			const tagName = rawTag.toLowerCase();
+			const lower = name.toLowerCase();
+			rule =
+				htmlRules.find((r) => {
+					const sel = r[lower];
+					if (!sel || typeof sel === "function") return false;
+					return sel === "*" || sel.includes(tagName);
+				}) ?? null;
+			forTag.set(name, rule);
+		}
+		return rule;
+	};
+
 	client.Proxy("Element.prototype.setAttribute", {
 		apply(ctx) {
 			let [name, value] = ctx.args;
-			const tagName = ctx.this.tagName.toLowerCase();
 
 			if (value != null) value = String(value);
 			ctx.args[1] = value;
 
-			const ruleList = htmlRules.find((rule) => {
-				const r = rule[name.toLowerCase()];
-				if (!r) return false;
-				if (r === "*") return true;
-				if (typeof r === "function") return false; // this can't happen but ts
-
-				return r.includes(tagName);
-			});
+			const ruleList = setAttributeRule(ctx.this.tagName, name);
 
 			if (ruleList) {
+				// only one rule (script/link module detection) reads the other
+				// attributes; don't read every attribute for the rest
 				const ret = ruleList.fn(
 					value,
 					client.context,
 					client.meta,
-					collectAttributeMap(client, ctx.this, name, value)
+					ruleList.fn.length >= 4
+						? collectAttributeMap(client, ctx.this, name, value)
+						: undefined
 				);
 				if (ret == null) {
 					client.natives.call(
@@ -438,6 +456,9 @@ export default function (client: KazeClient, self: typeof window) {
 				);
 			} else if (client.box.instanceof(ctx.this, "HTMLStyleElement")) {
 				newval = rewriteCss(html, client.context, client.meta);
+			} else if (String_indexOf(html, "<") === -1) {
+				// no tags: text and entities only, nothing to rewrite
+				newval = html;
 			} else {
 				try {
 					newval = rewriteHtml(html, client.context, client.meta, {
@@ -472,10 +493,10 @@ export default function (client: KazeClient, self: typeof window) {
 				return ctx.get();
 			}
 
-			return unrewriteHtml(
-				ctx.get(),
-				foreignContextForElement(client, ctx.this)
-			);
+			const raw = ctx.get() as string;
+			// unrewriteHtml only restores kaze-attr-* attributes
+			if (raw.indexOf("kaze-attr-") === -1) return raw;
+			return unrewriteHtml(raw, foreignContextForElement(client, ctx.this));
 		},
 	});
 

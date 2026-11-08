@@ -8,6 +8,7 @@ packages:
   - packages/bootstrap
   - packages/create-proxy-app
   - packages/site
+  - packages/embed
 
 overrides:
   htmlparser2: 12.0.0
@@ -20,6 +21,7 @@ catalog:
   htmlparser2: 12.0.0
 
 patchedDependencies:
+  "@mercuryworkshop/libcurl-transport@2.0.6": patches/@mercuryworkshop__libcurl-transport@2.0.6.patch
   htmlparser2@12.0.0: patches/htmlparser2@12.0.0.patch
 
 allowBuilds:

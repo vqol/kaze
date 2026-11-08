@@ -75,11 +75,15 @@ export interface KazeFetchResponse {
 export type CookieSyncEntry = {
 	url: URL;
 	cookie: string;
+	/** a document.cookie write: may not create or replace HttpOnly cookies */
+	fromJs?: boolean;
 };
 
 export type CookieSyncOptions = {
 	clear?: boolean;
 	destination?: RequestDestination;
+	/** service worker client that made the request; its jar must be updated before the response resolves */
+	clientId?: string;
 };
 
 export type FetchHandlerInit = {
@@ -94,6 +98,29 @@ export type FetchHandlerInit = {
 	fetchDataUrl(dataUrl: string): Promise<BareResponse>;
 	fetchBlobUrl(blobUrl: string): Promise<BareResponse>;
 };
+
+/** Where large rewrites can run instead of the thread the page renders on. */
+export interface RewriteOffload {
+	js(
+		input: Uint8Array,
+		url: string,
+		prefix: string,
+		meta: URLMeta,
+		isModule: boolean
+	): Promise<{
+		output: Uint8Array | string | null;
+		input: Uint8Array | string;
+	}>;
+	css(
+		input: string,
+		url: string,
+		prefix: string,
+		meta: URLMeta
+	): Promise<{
+		output: Uint8Array | string | null;
+		input: Uint8Array | string;
+	}>;
+}
 
 export type TrackedHistoryState = {
 	url: string;
@@ -121,6 +148,12 @@ export class KazeFetchHandler extends EventTarget {
 		};
 		fetch: TapInstance<FetchHooks>;
 	};
+
+	public rewriteOffload?: RewriteOffload;
+
+	/** rewritten scripts for responses served from the http cache */
+	public rewriteCache: _Map<string, Uint8Array | string> = new _Map();
+	public rewriteCacheBytes = 0;
 
 	public fetchDataUrl: (dataUrl: string) => Promise<Response>;
 	public fetchBlobUrl: (blobUrl: string) => Promise<Response>;

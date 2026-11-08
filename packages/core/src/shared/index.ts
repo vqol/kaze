@@ -7,6 +7,7 @@ import { HtmlContext } from "@/shared/rewriters/html";
 import { _RegExp, _WeakMap, Object_keys } from "./snapshot";
 
 export * from "./cookie";
+export * from "./psl";
 export * from "./headers";
 export * from "./htmlRules";
 export * from "./mime";
@@ -95,6 +96,7 @@ export type KazeInterface = {
 export type KazeContext = {
 	config: KazeConfig;
 	prefix: URL;
+	prefixStrings?: { href: string; origin: string };
 	interface: KazeInterface;
 	cookieJar: CookieJar;
 	hooks?: {

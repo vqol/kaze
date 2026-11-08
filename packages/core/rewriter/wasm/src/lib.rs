@@ -19,23 +19,29 @@ extern "C" {
 	fn console_error2(s: &JsValue);
 }
 
+// property keys are fixed strings: interned, wasm-bindgen reuses one JS string
+// per key instead of decoding a fresh one (TextDecoder) on every rewrite call
+fn key(k: &'static str) -> JsValue {
+	JsValue::from_str(wasm_bindgen::intern(k))
+}
+
 fn get_obj(obj: &JsValue, k: &'static str) -> Result<JsValue> {
-	Ok(Reflect::get(obj, &k.into())?)
+	Ok(Reflect::get(obj, &key(k))?)
 }
 
 fn get_str(obj: &JsValue, k: &'static str) -> Result<String> {
-	Reflect::get(obj, &k.into())?
+	Reflect::get(obj, &key(k))?
 		.as_string()
 		.ok_or_else(|| RewriterError::not_str(k))
 }
 fn get_bool(obj: &JsValue, k: &'static str) -> Result<bool> {
-	Reflect::get(obj, &k.into())?
+	Reflect::get(obj, &key(k))?
 		.as_bool()
 		.ok_or_else(|| RewriterError::not_bool(k))
 }
 
 fn set_obj(obj: &Object, k: &str, v: &JsValue) -> Result<()> {
-	if Reflect::set(&obj.into(), &k.into(), v)? {
+	if Reflect::set(&obj.into(), &JsValue::from_str(wasm_bindgen::intern(k)), v)? {
 		Ok(())
 	} else {
 		Err(RewriterError::ReflectSetFail(k.to_string()))
@@ -63,12 +69,19 @@ fn get_js_config(config: &Object) -> Result<Config> {
 }
 
 fn get_js_flags(obj: &Object, base: String, is_module: bool) -> Result<Flags> {
+	let do_sourcemaps = get_bool(obj, "sourcemaps")?;
 	Ok(Flags {
 		base,
-		sourcetag: scramtag(),
+		// the tag only ends up in output when sourcemaps are on; generating it
+		// cost a JS call + crypto per rewrite (thousands per page of on* attrs)
+		sourcetag: if do_sourcemaps {
+			scramtag()
+		} else {
+			std::string::String::new()
+		},
 		is_module,
 
-		do_sourcemaps: get_bool(obj, "sourcemaps")?,
+		do_sourcemaps,
 		capture_errors: get_bool(obj, "captureErrors")?,
 		scramitize: get_bool(obj, "scramitize")?,
 		disable_computed_wrap: get_bool(obj, "disableComputedWrap")?,
@@ -82,6 +95,10 @@ pub struct Rewriter {
 	alloc: Allocator,
 
 	js: JsRewriter,
+
+	/// last config object seen and its parsed form; callers pass the same
+	/// object for every rewrite, so skip re-reading 13 strings from JS
+	cfg_cache: Option<(Object, Config)>,
 }
 
 #[wasm_bindgen]
@@ -91,7 +108,9 @@ impl Rewriter {
 		Ok(Self {
 			alloc: Allocator::default(),
 
-			js: create_js()?
+			js: create_js()?,
+
+			cfg_cache: None,
 		})
 	}
 
@@ -106,7 +125,14 @@ impl Rewriter {
 		url: String,
 		module: bool,
 	) -> Result<JsRewriterOutput> {
-		let config = get_js_config(jsconfig)?;
+		let config = match &self.cfg_cache {
+			Some((obj, cfg)) if Object::is(obj, jsconfig) => cfg.clone(),
+			_ => {
+				let cfg = get_js_config(jsconfig)?;
+				self.cfg_cache = Some((jsconfig.clone(), cfg.clone()));
+				cfg
+			}
+		};
 		let flags = get_js_flags(jsflags, base, module)?;
 		let rewriter = get_url_rewriter(encode_url)?;
 

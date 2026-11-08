@@ -2,6 +2,22 @@
 import { JSON_parse, JSON_stringify } from "@/shared/snapshot";
 import { _Date } from "./snapshot";
 import parse from "./set-cookie-parser";
+import { isPublicSuffix } from "./psl";
+
+// Chrome's "Lax-allowing-unsafe": cookies that got SameSite=Lax by default
+// (no attribute) are still sent on cross-site top-level POST navigations for
+// two minutes after creation. OAuth/OIDC form_post callbacks (Apple, Microsoft,
+// many SSO providers) depend on it to get their state/nonce cookie back.
+const LAX_ALLOWING_UNSAFE_MS = 2 * 60 * 1000;
+
+/**
+ * "strict"      same-site: everything allowed
+ * "lax"         cross-site top-level GET navigation: Strict blocked
+ * "lax-unsafe"  cross-site top-level POST navigation: like cross-site, plus
+ *               recently created default-Lax cookies
+ * "cross-site"  cross-site subresource / frame: only SameSite=None
+ */
+export type SameSiteContext = "strict" | "lax" | "lax-unsafe" | "cross-site";
 
 export type Cookie = {
 	name: string;
@@ -14,7 +30,15 @@ export type Cookie = {
 	secure?: boolean;
 	httpOnly?: boolean;
 	sameSite?: string; // "strict"|"lax"|"none" or titlecase variants from parsers
+	/** SameSite came from the default, not an attribute */
+	sameSiteDefault?: boolean;
+	/** creation time (kept when a cookie is overwritten, per RFC 6265) */
+	creation?: number;
+	/** tie-breaker for equal creation times */
+	seq?: number;
 };
+
+let cookieSeq = 0;
 
 export class CookieJar {
 	private cookies: Record<string, Cookie> = {};
@@ -61,8 +85,15 @@ export class CookieJar {
 		delete this.cookies[id];
 	}
 
-	setCookies(cookieString: string, url: URL) {
+	/**
+	 * Store cookies from a Set-Cookie header value (or a document.cookie write
+	 * when `fromJs`). Returns how many cookies were accepted.
+	 */
+	setCookies(cookieString: string, url: URL, fromJs = false): number {
 		const parsedCookies = parse(cookieString);
+		const hostname = url.hostname.toLowerCase();
+		const now = _Date.now();
+		let accepted = 0;
 
 		for (const parsedCookie of parsedCookies) {
 			const lowerName = parsedCookie.name.toLowerCase();
@@ -75,53 +106,95 @@ export class CookieJar {
 				if (parsedCookie.path !== "/") continue;
 			}
 
-			const hostOnly = !parsedCookie.domain;
+			// scripts can't create HttpOnly cookies
+			if (fromJs && parsedCookie.httpOnly) continue;
+
+			// Domain attribute: must domain-match the host and not be a public
+			// suffix, otherwise any site could plant cookies on any other
+			let domain = hostname;
+			let hostOnly = true;
+			if (typeof parsedCookie.domain === "string" && parsedCookie.domain) {
+				let d = parsedCookie.domain.toLowerCase();
+				while (d.startsWith(".")) d = d.slice(1);
+				if (d.endsWith(".")) d = d.slice(0, -1);
+				if (d) {
+					if (isPublicSuffix(d)) {
+						// allowed only as the host itself, and then host-only
+						if (d !== hostname) continue;
+					} else {
+						if (d !== hostname && !hostname.endsWith("." + d)) continue;
+						hostOnly = false;
+					}
+					domain = d;
+				}
+			}
+
 			const expiresTime = parsedCookie.expires?.getTime();
 			const expires = Number.isFinite(expiresTime) ? expiresTime : undefined;
+			const sameSiteRaw =
+				typeof parsedCookie.sameSite === "string"
+					? parsedCookie.sameSite.toLowerCase()
+					: undefined;
+			// unknown values behave like a missing attribute (default Lax)
+			const sameSiteValid =
+				sameSiteRaw === "strict" ||
+				sameSiteRaw === "lax" ||
+				sameSiteRaw === "none";
 			const cookie: Cookie = {
 				...parsedCookie,
+				domain: "." + domain,
 				hostOnly,
 				expires,
+				sameSite: sameSiteValid ? sameSiteRaw : "lax",
+				sameSiteDefault: !sameSiteValid,
 			};
 
-			if (!cookie.domain) cookie.domain = url.hostname;
-			if (!cookie.domain.startsWith(".")) cookie.domain = "." + cookie.domain;
 			if (!cookie.path || !cookie.path.startsWith("/")) {
 				cookie.path = this.defaultPath(url);
 			}
-			if (!cookie.sameSite) cookie.sameSite = "lax";
 
 			const id = `${cookie.domain}@${cookie.path}@${cookie.name}`;
+			const prev = this.cookies[id];
+
+			// scripts can't overwrite (or delete) HttpOnly cookies either
+			if (fromJs && prev?.httpOnly) continue;
 
 			if (typeof cookie.maxAge === "number") {
 				if (!Number.isFinite(cookie.maxAge)) {
 					delete cookie.maxAge;
 				} else if (cookie.maxAge <= 0) {
 					this.removeById(id);
+					accepted++;
 					continue;
 				} else {
-					cookie.expires = _Date.now() + cookie.maxAge * 1000;
+					cookie.expires = now + cookie.maxAge * 1000;
 				}
 			}
+			// an expiry in the past is how sites delete cookies
+			if (cookie.expires !== undefined && cookie.expires <= now) {
+				this.removeById(id);
+				accepted++;
+				continue;
+			}
 
-			const prev = this.cookies[id];
+			cookie.creation = prev?.creation ?? now;
+			cookie.seq = prev?.seq ?? ++cookieSeq;
 			if (prev) this.unindexCookie(prev);
 			this.cookies[id] = cookie;
 			this.indexCookie(cookie);
+			accepted++;
 		}
+
+		return accepted;
 	}
 
-	// SameSite enforcement context passed to getCookies.
-	// "strict"     – same-site request; all cookies allowed
-	// "lax"        – cross-site top-level GET/HEAD navigation; Strict blocked, Lax+None allowed
-	// "cross-site" – cross-site subresource or non-GET navigation; only None allowed
 	getCookies(
 		url: URL,
 		fromJs: boolean,
-		sameSiteContext: "strict" | "lax" | "cross-site" = "strict"
+		sameSiteContext: SameSiteContext = "strict"
 	): string {
 		const now = _Date.now();
-		const hostname = url.hostname;
+		const hostname = url.hostname.toLowerCase();
 		const pathname = url.pathname;
 		const validCookies: Cookie[] = [];
 
@@ -137,21 +210,26 @@ export class CookieJar {
 
 					// Kaze proxies all origins as HTTPS (including those served over HTTP),
 					// so we don't enforce the Secure attribute based on protocol here.
-					// if (cookie.secure && url.protocol !== "https:") continue;
 					if (cookie.httpOnly && fromJs) continue;
 					if (!this.pathMatches(pathname, cookie.path!)) continue;
 
-					// SameSite enforcement — compare case-insensitively since parsers may
-					// return "Strict"/"Lax"/"None" (titlecase) or "strict"/"lax"/"none".
+					// compare case-insensitively: jars persisted by older builds
+					// may hold "Strict"/"Lax"/"None"
 					const cs = (cookie.sameSite ?? "lax").toLowerCase();
 					if (sameSiteContext === "cross-site") {
-						// Only SameSite=None cookies are sent cross-site
 						if (cs !== "none") continue;
+					} else if (sameSiteContext === "lax-unsafe") {
+						if (
+							cs !== "none" &&
+							!(
+								cookie.sameSiteDefault &&
+								now - (cookie.creation ?? 0) < LAX_ALLOWING_UNSAFE_MS
+							)
+						)
+							continue;
 					} else if (sameSiteContext === "lax") {
-						// Lax top-level navigation: block Strict, allow Lax and None
 						if (cs === "strict") continue;
 					}
-					// "strict" context: all cookies allowed (no filtering)
 
 					validCookies.push(cookie);
 				}
@@ -160,11 +238,43 @@ export class CookieJar {
 			key = dot === -1 ? undefined : key.slice(dot + 1);
 		}
 
-		return validCookies
-			.map((cookie) =>
-				cookie.name ? `${cookie.name}=${cookie.value}` : cookie.value
-			)
-			.join("; ");
+		// RFC 6265 5.4: longer paths first, then earlier creation
+		if (validCookies.length > 1)
+			validCookies.sort(
+				(a, b) =>
+					b.path!.length - a.path!.length ||
+					(a.creation ?? 0) - (b.creation ?? 0) ||
+					(a.seq ?? 0) - (b.seq ?? 0)
+			);
+
+		let out = "";
+		for (const cookie of validCookies) {
+			if (out) out += "; ";
+			out += cookie.name ? `${cookie.name}=${cookie.value}` : cookie.value;
+		}
+		return out;
+	}
+
+	/**
+	 * The jar as JSON, limited to cookies a page on `url`'s host can see
+	 * (its own domain chain). Injected pages only need these.
+	 */
+	dumpFor(url: URL): string {
+		const out: Record<string, Cookie> = {};
+		const now = _Date.now();
+		let key: string | undefined = url.hostname.toLowerCase();
+		while (key !== undefined) {
+			const bucket = this.byDomain.get(key);
+			if (bucket) {
+				for (const c of bucket) {
+					if (c.expires !== undefined && c.expires < now) continue;
+					out[`${c.domain}@${c.path}@${c.name}`] = c;
+				}
+			}
+			const dot = key.indexOf(".");
+			key = dot === -1 ? undefined : key.slice(dot + 1);
+		}
+		return JSON_stringify(out);
 	}
 
 	load(cookies: string | Record<string, Cookie>) {

@@ -1,0 +1,35 @@
+{
+	"name": "@kaze/embed",
+	"version": "0.1.0",
+	"type": "module",
+	"license": "AGPL-3.0-only",
+	"description": "Add a kaze proxied browser to any website",
+	"main": "./server.mjs",
+	"exports": {
+		".": "./server.mjs"
+	},
+	"bin": {
+		"kaze-embed": "./cli.mjs"
+	},
+	"files": [
+		"assets",
+		"server.mjs",
+		"cli.mjs",
+		"README.md",
+		"MIGRATING.md"
+	],
+	"scripts": {
+		"build": "node build.mjs",
+		"test": "node test/smoke.mjs",
+		"prepack": "node build.mjs"
+	},
+	"dependencies": {
+		"@mercuryworkshop/wisp-js": "catalog:"
+	},
+	"devDependencies": {
+		"@kaze/controller": "workspace:*",
+		"@kaze/core": "workspace:*",
+		"@mercuryworkshop/libcurl-transport": "catalog:",
+		"playwright": "^1.61.0"
+	}
+}

@@ -75,8 +75,15 @@ export const TextDecoder_decode = textDecoder.decode.bind(textDecoder);
 const performance = globalThis.performance;
 export const Performance_now = performance.now.bind(performance);
 
+export const String_indexOf = Function_prototype_call.bind(
+	String.prototype.indexOf
+) as unknown as (s: string, search: string) => number;
+export const RegExp_exec = Function_prototype_call.bind(
+	RegExp.prototype.exec
+) as unknown as (r: RegExp, s: string) => RegExpExecArray | null;
 export const btoa = globalThis.btoa;
 export const atob = globalThis.atob;
+export const encodeURIComponent = globalThis.encodeURIComponent;
 export const URL_createObjectURL = globalThis.URL.createObjectURL.bind(
 	globalThis.URL
 );

@@ -14,7 +14,7 @@ js-sys = "0.3.82"
 oxc = { workspace = true }
 js = { version = "0.1.0", path = "../js", default-features = false }
 thiserror = "2.0.17"
-wasm-bindgen = "0.2.105"
+wasm-bindgen = { version = "0.2.105", features = ["enable-interning"] }
 web-sys = { version = "0.3.82", features = ["Url","UrlSearchParams"] }
 
 [features]

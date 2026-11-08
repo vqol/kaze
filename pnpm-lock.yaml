@@ -181,6 +181,7 @@ overrides:
   htmlparser2: 12.0.0
 
 patchedDependencies:
+  '@mercuryworkshop/libcurl-transport@2.0.6': d10a860afc7cce680ca2d4cf0c0a3f177b1cd8a93d2ecc16ec5a7d917aee9ea6
   htmlparser2@12.0.0: 741b06dbf8a09e52a2116a4a219a8625dbebe8d75d37e1210314f06aa952ce9b
 
 importers:
@@ -251,7 +252,7 @@ importers:
         version: 3.0.2
       '@mercuryworkshop/libcurl-transport':
         specifier: 'catalog:'
-        version: 2.0.6
+        version: 2.0.6(patch_hash=d10a860afc7cce680ca2d4cf0c0a3f177b1cd8a93d2ecc16ec5a7d917aee9ea6)
       '@mercuryworkshop/proxy-transports':
         specifier: 'catalog:'
         version: 1.0.2
@@ -383,7 +384,7 @@ importers:
         version: 3.0.2
       '@mercuryworkshop/libcurl-transport':
         specifier: 'catalog:'
-        version: 2.0.6
+        version: 2.0.6(patch_hash=d10a860afc7cce680ca2d4cf0c0a3f177b1cd8a93d2ecc16ec5a7d917aee9ea6)
       '@mercuryworkshop/proxy-transports':
         specifier: 'catalog:'
         version: 1.0.2
@@ -401,6 +402,25 @@ importers:
         specifier: ^3.1.6
         version: 3.1.6(vite@7.3.1(@types/node@26.0.1)(jiti@2.6.1)(terser@5.44.1)(yaml@2.8.1))
 
+  packages/embed:
+    dependencies:
+      '@mercuryworkshop/wisp-js':
+        specifier: 'catalog:'
+        version: 0.4.1
+    devDependencies:
+      '@kaze/controller':
+        specifier: workspace:*
+        version: link:../controller
+      '@kaze/core':
+        specifier: workspace:*
+        version: link:../core
+      '@mercuryworkshop/libcurl-transport':
+        specifier: 'catalog:'
+        version: 2.0.6(patch_hash=d10a860afc7cce680ca2d4cf0c0a3f177b1cd8a93d2ecc16ec5a7d917aee9ea6)
+      playwright:
+        specifier: ^1.61.0
+        version: 1.61.0
+
   packages/rpc: {}
 
   packages/runway:
@@ -411,9 +431,12 @@ importers:
       '@kaze/core':
         specifier: workspace:*
         version: link:../core
+      '@mercuryworkshop/epoxy-transport':
+        specifier: 'catalog:'
+        version: 3.0.2
       '@mercuryworkshop/libcurl-transport':
         specifier: 'catalog:'
-        version: 2.0.6
+        version: 2.0.6(patch_hash=d10a860afc7cce680ca2d4cf0c0a3f177b1cd8a93d2ecc16ec5a7d917aee9ea6)
       '@mercuryworkshop/wisp-js':
         specifier: 'catalog:'
         version: 0.4.1
@@ -456,7 +479,7 @@ importers:
         version: link:../core
       '@mercuryworkshop/libcurl-transport':
         specifier: 'catalog:'
-        version: 2.0.6
+        version: 2.0.6(patch_hash=d10a860afc7cce680ca2d4cf0c0a3f177b1cd8a93d2ecc16ec5a7d917aee9ea6)
       '@mercuryworkshop/wisp-js':
         specifier: 'catalog:'
         version: 0.4.1
@@ -3910,7 +3933,7 @@ snapshots:
     dependencies:
       '@mercuryworkshop/epoxy-tls': 2.1.20-1
 
-  '@mercuryworkshop/libcurl-transport@2.0.6':
+  '@mercuryworkshop/libcurl-transport@2.0.6(patch_hash=d10a860afc7cce680ca2d4cf0c0a3f177b1cd8a93d2ecc16ec5a7d917aee9ea6)':
     dependencies:
       libcurl.js: 0.7.5
 

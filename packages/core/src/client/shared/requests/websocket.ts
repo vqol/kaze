@@ -1,3 +1,4 @@
+import { registrableDomain } from "@/shared/psl";
 import { type BareCompatibleWebSocket } from "@mercuryworkshop/proxy-transports";
 import { KazeClient } from "@client/index";
 import {
@@ -66,7 +67,19 @@ export default function (client: KazeClient, self: GlobalThis) {
 			const barews = client.bare.createWebSocket(url, ctx.args[1], [
 				["User-Agent", self.navigator.userAgent],
 				["Origin", client.url.origin],
-				["Cookie", client.context.cookieJar.getCookies(client.url, false)],
+				// cookies for the socket's host, not the page's (the controller
+				// replaces this with its authoritative jar; see controller connect)
+				[
+					"Cookie",
+					client.context.cookieJar.getCookies(
+						new _URL(url.replace(/^ws/, "http")),
+						false,
+						registrableDomain(rawurl.hostname) ===
+							registrableDomain(client.url.hostname)
+							? "strict"
+							: "cross-site"
+					),
+				],
 			]);
 
 			const state: FakeWebSocketState = {

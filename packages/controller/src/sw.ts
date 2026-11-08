@@ -50,9 +50,9 @@ class ControllerReference {
 		this.rpc = new RpcHelper(
 			{
 				sendSetCookie: async ({ cookies, options }) => {
-					const clients = await self.clients.matchAll();
-					const ids: string[] = [];
-					const promises: Promise<string>[] = [];
+					const clients = await self.clients.matchAll({
+						includeUncontrolled: true,
+					});
 
 					// Navigation fetches (document/iframe) deliver cookies via the inject
 					// script's embedded cookieJar dump — the destination page doesn't have
@@ -62,68 +62,50 @@ class ControllerReference {
 						options?.destination === "document" ||
 						options?.destination === "iframe";
 
+					// Only the page that made the request has to see the cookies before
+					// its fetch()/XHR resolves (document.cookie right after a response).
+					// Waiting for "any" client used to resolve on the controller window's
+					// ack, which raced the requesting page.
+					let waitFor: Promise<void> | null = null;
+					let waitId: string | null = null;
 					for (const client of clients) {
 						const id = makeId();
-						ids.push(id);
+						const mustAck =
+							!isNavigation &&
+							!!options?.clientId &&
+							client.id === options.clientId;
+						if (mustAck) {
+							waitId = id;
+							waitFor = new Promise<void>((resolve) => {
+								cookieResolvers[id] = resolve;
+							});
+						}
 						client.postMessage({
 							$controller$setCookie: {
 								cookies,
 								options,
-								id,
+								// only ask for an ack where someone waits for it
+								id: mustAck ? id : undefined,
 							},
 						});
-						if (!isNavigation) {
-							promises.push(
-								new Promise<string>((resolve) => {
-									// Resolve with the id so we know which client replied.
-									cookieResolvers[id] = () => resolve(id);
-								})
-							);
-						}
 					}
-					// Wait for the first client to acknowledge the cookie sync.
-					// Using Promise.any (not Promise.all) so that extra SW clients created by
-					// window.open (e.g. test popup windows) don't cause timeouts — only the
-					// main controller client needs to respond.
-					if (promises.length > 0) {
-						let timeoutId: ReturnType<typeof setTimeout> | undefined;
-						let responded = false;
-						const timeoutPromise = new Promise<void>((resolve) => {
-							timeoutId = setTimeout(() => {
-								if (!responded) {
-									const pending = ids.filter(
-										(id) => cookieResolvers[id] !== undefined
-									);
-									console.error(
-										"timed out waiting for set cookie response (deadlock?): " +
-											`cookies=${cookies.length} clients=${clients.length} ` +
-											`pending=${pending.length}/${ids.length} ` +
-											`clientUrls=${clients.map((c) => c.url).join(",")}`
-									);
-								}
-								resolve();
-							}, 1000);
-						});
 
-						try {
-							await Promise.race([
-								timeoutPromise,
-								Promise.any(promises)
-									.then(() => {
-										responded = true;
-									})
-									.catch(() => {}),
-							]);
-						} finally {
-							// Clear the timeout so it doesn't fire spuriously after the
-							// race has already been won by Promise.any.
-							if (timeoutId !== undefined) clearTimeout(timeoutId);
-							// Clean up any pending resolvers so clients that never
-							// responded don't leak entries in cookieResolvers.
-							for (const id of ids) {
-								delete cookieResolvers[id];
-							}
-						}
+					if (waitFor) {
+						let timeoutId: ReturnType<typeof setTimeout> | undefined;
+						await Promise.race([
+							waitFor,
+							new Promise<void>((resolve) => {
+								timeoutId = setTimeout(() => {
+									console.error(
+										"timed out waiting for the requesting page to apply cookies"
+									);
+									resolve();
+								}, 250);
+							}),
+						]);
+						clearTimeout(timeoutId);
+						// resolved or abandoned: either way nobody waits any more
+						if (waitId) delete cookieResolvers[waitId];
 					}
 				},
 			},
@@ -173,7 +155,8 @@ async function broadcastRevive() {
 	// at most one broadcast per second
 	if (Date.now() - lastRevive < 1000) return;
 	lastRevive = Date.now();
-	for (const client of await clients.matchAll()) {
+	// the controller page can sit outside a narrowly scoped service worker
+	for (const client of await clients.matchAll({ includeUncontrolled: true })) {
 		client.postMessage({ $controller$swrevive: {} });
 	}
 }
@@ -204,6 +187,24 @@ export function shouldRoute(event: FetchEvent): boolean {
 	);
 }
 
+// clients.get is a round trip to the browser process per call. A page's burst
+// of subresource requests shares one lookup; the short lifetime keeps the url
+// current across pushState.
+const CLIENT_LOOKUP_MS = 50;
+const clientLookups = new Map<
+	string,
+	{ at: number; client: Promise<Client | undefined> }
+>();
+function lookupClient(id: string): Promise<Client | undefined> {
+	const now = Date.now();
+	const hit = clientLookups.get(id);
+	if (hit && now - hit.at < CLIENT_LOOKUP_MS) return hit.client;
+	if (clientLookups.size > 64) clientLookups.clear();
+	const client = clients.get(id);
+	clientLookups.set(id, { at: now, client });
+	return client;
+}
+
 export async function route(event: FetchEvent): Promise<Response> {
 	try {
 		const url = new URL(event.request.url);
@@ -214,7 +215,7 @@ export async function route(event: FetchEvent): Promise<Response> {
 				{ status: 503 }
 			);
 		}
-		const client = await clients.get(event.clientId);
+		const client = await lookupClient(event.clientId);
 
 		const rawheaders: RawHeaders = [...event.request.headers];
 

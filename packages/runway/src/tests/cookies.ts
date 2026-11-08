@@ -187,4 +187,112 @@ export default [
 			});
 		},
 	}),
+	// --- jar correctness (RFC 6265bis / browser behaviour) ---
+	serverTest({
+		name: "cookies-domain-attribute-validation",
+		hostname: "app.cookietest.com",
+		autoPass: false,
+		js: `
+		await fetch("/set");
+		const c = document.cookie;
+		assert(c.includes("parent=1"), "Domain=<parent> must be accepted: " + c);
+		assert(c.includes("upper=1"), "Domain is case-insensitive: " + c);
+		assert(!c.includes("foreign=1"), "Domain=<other site> must be rejected: " + c);
+		assert(!c.includes("tld=1"), "Domain=<public suffix> must be rejected: " + c);
+		const echoed = await (await fetch("/echo")).text();
+		assert(!echoed.includes("foreign=1") && !echoed.includes("tld=1"), "rejected cookies must not be sent: " + echoed);
+		pass("domain attribute validated");
+		`,
+		start: async (server) => {
+			server.on("request", (req, res) => {
+				if (res.headersSent) return;
+				const path = (req.url || "").split("?")[0];
+				if (path === "/set") {
+					res.writeHead(200, {
+						"Content-Type": "text/plain",
+						"Set-Cookie": [
+							"parent=1; Path=/; Domain=cookietest.com",
+							"upper=1; Path=/; Domain=APP.CookieTest.COM",
+							"foreign=1; Path=/; Domain=evil-example.com",
+							"tld=1; Path=/; Domain=com",
+						],
+					});
+					res.end("ok");
+				} else if (path === "/echo") {
+					res.writeHead(200, { "Content-Type": "text/plain" });
+					res.end(req.headers.cookie || "");
+				}
+			});
+		},
+	}),
+	serverTest({
+		name: "cookies-js-cannot-touch-httponly",
+		autoPass: false,
+		js: `
+		await fetch("/set");
+		assert(!document.cookie.includes("sess="), "HttpOnly cookie must be hidden from document.cookie");
+		document.cookie = "sess=stolen; path=/";
+		document.cookie = "planted=1; path=/; HttpOnly";
+		assert(!document.cookie.includes("planted"), "document.cookie must not create HttpOnly cookies");
+		const echoed = await (await fetch("/echo")).text();
+		assert(echoed.includes("sess=server"), "HttpOnly cookie must survive a script overwrite: " + echoed);
+		assert(!echoed.includes("sess=stolen"), "script must not overwrite an HttpOnly cookie: " + echoed);
+		assert(!echoed.includes("planted"), "HttpOnly from script must never reach the server: " + echoed);
+		pass("httponly protected");
+		`,
+		start: async (server) => {
+			server.on("request", (req, res) => {
+				if (res.headersSent) return;
+				const path = (req.url || "").split("?")[0];
+				if (path === "/set") {
+					res.writeHead(200, {
+						"Content-Type": "text/plain",
+						"Set-Cookie": "sess=server; Path=/; HttpOnly",
+					});
+					res.end("ok");
+				} else if (path === "/echo") {
+					res.writeHead(200, { "Content-Type": "text/plain" });
+					res.end(req.headers.cookie || "");
+				}
+			});
+		},
+	}),
+	serverTest({
+		name: "cookies-header-order-and-expiry",
+		autoPass: false,
+		js: `
+		await fetch("/set1");
+		await fetch("/set2");
+		const echoed = await (await fetch("/deep/echo")).text();
+		assert(echoed.includes("dup=deep") && echoed.indexOf("dup=deep") < echoed.indexOf("dup=root"), "longer path must come first: " + echoed);
+		assert(!echoed.includes("gone="), "Expires in the past must delete the cookie: " + echoed);
+		assert(!document.cookie.includes("gone="), "deleted cookie visible to script: " + document.cookie);
+		pass("order + expiry");
+		`,
+		start: async (server) => {
+			server.on("request", (req, res) => {
+				if (res.headersSent) return;
+				const path = (req.url || "").split("?")[0];
+				if (path === "/set1") {
+					res.writeHead(200, {
+						"Content-Type": "text/plain",
+						"Set-Cookie": ["dup=root; Path=/", "gone=1; Path=/"],
+					});
+					res.end("ok");
+				} else if (path === "/set2") {
+					res.writeHead(200, {
+						"Content-Type": "text/plain",
+						"Set-Cookie": [
+							"dup=deep; Path=/deep",
+							"gone=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT",
+						],
+					});
+					res.end("ok");
+				} else if (path === "/deep/echo") {
+					res.writeHead(200, { "Content-Type": "text/plain" });
+					res.end(req.headers.cookie || "");
+				}
+			});
+		},
+	}),
 ];

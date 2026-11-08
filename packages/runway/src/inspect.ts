@@ -205,6 +205,7 @@ async function main() {
 			}) => {
 				(window as any).__runwayCleartextHttpsHosts = payload.hosts;
 				(window as any).__runwayCleartextSite = payload.site;
+				return (window as any).__runwaySyncCleartext?.();
 			},
 			{
 				hosts: runwayCleartextHttpsHostList(firstTest),

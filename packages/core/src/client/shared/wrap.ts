@@ -39,8 +39,16 @@ export function createWrapFn(client: KazeClient, self: GlobalThis) {
 		wrappedTop = current;
 	}
 
+	// a window's Location object never changes; read the getter once
+	const realLocation = self.location;
 	return function (identifier: any) {
-		if (identifier === self.location) return client.locationProxy;
+		// most wrapped values are plain data: skip every comparison below
+		if (
+			identifier === null ||
+			(typeof identifier !== "object" && typeof identifier !== "function")
+		)
+			return identifier;
+		if (identifier === realLocation) return client.locationProxy;
 		if (identifier === self.eval) {
 			return client.indirectEval;
 		}

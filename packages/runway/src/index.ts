@@ -436,6 +436,7 @@ async function syncRunwayCleartextHarness(page: Page, test: Test) {
 		}) => {
 			(window as any).__runwayCleartextHttpsHosts = payload.hosts;
 			(window as any).__runwayCleartextSite = payload.site;
+			return (window as any).__runwaySyncCleartext?.();
 		},
 		{ hosts, site }
 	);

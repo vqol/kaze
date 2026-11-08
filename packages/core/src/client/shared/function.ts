@@ -10,12 +10,15 @@ function rewriteFunction<T extends string, U extends "construct" | "apply">(
 	// TODO: also check if the function comes from a weird realm. if so we need to completely block it or do something else weird
 	// not much point rewriting the javascript if it's executing in the top level
 
+	const source = `return ${stringifiedFunction}`;
 	const content = rewriteJs(
-		`return ${stringifiedFunction}`,
+		source,
 		"(function proxy)",
 		client.context,
 		client.meta
 	);
+	// unchanged: the function ctx.call() already built is the right one
+	if (content === source) return;
 	ctx.return(ctx.fn(content)());
 }
 

@@ -1,3 +1,4 @@
+import { registrableDomain } from "@/shared/psl";
 import {
 	BareRequestInit,
 	BareResponse,
@@ -285,15 +286,8 @@ async function handleBlobOrDataUrlFetch(
 	};
 }
 
-/** Simplified registrable-domain check used for cross-site redirect detection. */
-export function registrableDomainForRedirect(hostname: string): string {
-	if (/^[\d.]+$/.test(hostname) || hostname.includes(":")) return hostname;
-	const labels = hostname.split(".");
-	if (labels.length <= 1) return hostname;
-	if (labels[0] === "www") return labels.slice(1).join(".");
-	if (labels.length === 2) return hostname;
-	return labels.slice(-2).join(".");
-}
+/** registrable domain used for cross-site redirect detection */
+export const registrableDomainForRedirect = registrableDomain;
 
 async function handleCookies(
 	handler: KazeFetchHandler,
@@ -319,5 +313,6 @@ async function handleCookies(
 
 	await handler.sendSetCookie(cookies, {
 		destination: parsed.destination,
+		clientId: request.clientId,
 	});
 }

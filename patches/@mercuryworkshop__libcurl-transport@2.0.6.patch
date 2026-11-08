@@ -1,0 +1,240 @@
+diff --git a/dist/index.js b/dist/index.js
+index f592756ff9679696cb5b0e8b4b9786d2fdd8a1ef..820cbf0ace11494fe94bbe7bb76614be6833052a 100644
+--- a/dist/index.js
++++ b/dist/index.js
+@@ -5276,6 +5276,7 @@ var libcurl = (function() {
+       return stream;
+     }
+     on_ws_msg(event) {
++      _kz_kick();
+       let packet = new Uint8Array(event.data);
+       if (packet.length < 5) {
+         warn_msg(`wisp client warning: received a packet which is too short`);
+@@ -5304,6 +5305,35 @@ var libcurl = (function() {
+     }
+   }
+   const _wisp_connections = {};
++  // kaze: event-driven scheduling (see kaze scripts/patch-libcurl.mjs)
++  const _kz_kickables = new Set();
++  const _kz_deferred = [];
++  let _kz_kick_pending = false;
++  const _kz_kick_channel = typeof MessageChannel !== "undefined" ? new MessageChannel() : null;
++  if (_kz_kick_channel) {
++    _kz_kick_channel.port1.onmessage = () => {
++      _kz_kick_pending = false;
++      for (const run of _kz_deferred.splice(0)) {
++        try {
++          run();
++        } catch (e) {
++          console.error(e);
++        }
++      }
++      for (const kick of _kz_kickables) {
++        try {
++          kick();
++        } catch (e) {
++          console.error(e);
++        }
++      }
++    };
++  }
++  function _kz_kick() {
++    if (_kz_kick_pending || !_kz_kick_channel) return;
++    _kz_kick_pending = true;
++    _kz_kick_channel.port2.postMessage(null);
++  }
+   class WispWebSocket extends EventTarget {
+     constructor(url, protocols) {
+       super();
+@@ -5696,9 +5726,14 @@ Several C libraries are used, and their licenses are listed below:
+     //remove the request on the next iteration of the loop
+     remove_request(request_ptr) {
+       this.assert_ready();
+-      setTimeout(() => {
+-        this.remove_request_now(request_ptr);
+-      }, 1);
++      if (typeof MessageChannel === "undefined") {
++        setTimeout(() => {
++          this.remove_request_now(request_ptr);
++        }, 1);
++        return;
++      }
++      _kz_deferred.push(() => this.remove_request_now(request_ptr));
++      _kz_kick();
+     }
+     start_request(request_ptr) {
+       this.assert_ready();
+@@ -5712,6 +5747,10 @@ Several C libraries are used, and their licenses are listed below:
+       this.event_loop = setInterval(() => {
+         this.event_loop_func();
+       }, 0);
++      this._kz_kick = () => {
++        if (this.event_loop) this.event_loop_func();
++      };
++      _kz_kickables.add(this._kz_kick);
+     }
+     event_loop_func() {
+       let libcurl_active = _session_get_active(this.session_ptr);
+@@ -5720,6 +5759,7 @@ Several C libraries are used, and their licenses are listed below:
+       } else {
+         clearInterval(this.event_loop);
+         this.event_loop = null;
++        _kz_kickables.delete(this._kz_kick);
+       }
+     }
+     close_now() {
+@@ -5897,7 +5937,7 @@ Several C libraries are used, and their licenses are listed below:
+     static create_response(response_data, response_info) {
+       response_info.ok = response_info.status >= 200 && response_info.status < 300;
+       response_info.statusText = status_messages[response_info.status] || "";
+-      if (response_info.status === 204 || response_info.status === 205) {
++      if (response_info.status === 204 || response_info.status === 205 || response_info.status === 304) {
+         response_data = null;
+       }
+       let response_obj = new Response(response_data, response_info);
+@@ -5995,10 +6035,21 @@ Several C libraries are used, and their licenses are listed below:
+       let finish_callback = (error) => {
+         if (error === 0) {
+           this.connected = true;
+-          this.recv_loop = setInterval(() => {
+-            let data = this.recv();
+-            if (data !== null) this.onmessage(data);
+-          }, 0);
++          // drain every queued message per tick, not one per 4ms tick
++          const drain = () => {
++            for (let i = 0; i < 1024; i++) {
++              if (!this.connected) {
++                _kz_kickables.delete(drain);
++                return;
++              }
++              const buffered = this.recv_buffer.length;
++              const data = this.recv();
++              if (data !== null) this.onmessage(data);
++              else if (this.recv_buffer.length === buffered) return;
++            }
++          };
++          this.recv_loop = setInterval(drain, 0);
++          _kz_kickables.add(drain);
+           this.onopen();
+         } else {
+           this.cleanup(error);
+diff --git a/dist/index.mjs b/dist/index.mjs
+index 9a985472ccf062ba146492868f3b7aef289d3446..a4fd58fb8639e5b7b88dfbd026730b89bea3043a 100644
+--- a/dist/index.mjs
++++ b/dist/index.mjs
+@@ -5255,6 +5255,7 @@ var libcurl = (function() {
+       return stream;
+     }
+     on_ws_msg(event) {
++      _kz_kick();
+       let packet = new Uint8Array(event.data);
+       if (packet.length < 5) {
+         warn_msg(`wisp client warning: received a packet which is too short`);
+@@ -5283,6 +5284,35 @@ var libcurl = (function() {
+     }
+   }
+   const _wisp_connections = {};
++  // kaze: event-driven scheduling (see kaze scripts/patch-libcurl.mjs)
++  const _kz_kickables = new Set();
++  const _kz_deferred = [];
++  let _kz_kick_pending = false;
++  const _kz_kick_channel = typeof MessageChannel !== "undefined" ? new MessageChannel() : null;
++  if (_kz_kick_channel) {
++    _kz_kick_channel.port1.onmessage = () => {
++      _kz_kick_pending = false;
++      for (const run of _kz_deferred.splice(0)) {
++        try {
++          run();
++        } catch (e) {
++          console.error(e);
++        }
++      }
++      for (const kick of _kz_kickables) {
++        try {
++          kick();
++        } catch (e) {
++          console.error(e);
++        }
++      }
++    };
++  }
++  function _kz_kick() {
++    if (_kz_kick_pending || !_kz_kick_channel) return;
++    _kz_kick_pending = true;
++    _kz_kick_channel.port2.postMessage(null);
++  }
+   class WispWebSocket extends EventTarget {
+     constructor(url, protocols) {
+       super();
+@@ -5675,9 +5705,14 @@ Several C libraries are used, and their licenses are listed below:
+     //remove the request on the next iteration of the loop
+     remove_request(request_ptr) {
+       this.assert_ready();
+-      setTimeout(() => {
+-        this.remove_request_now(request_ptr);
+-      }, 1);
++      if (typeof MessageChannel === "undefined") {
++        setTimeout(() => {
++          this.remove_request_now(request_ptr);
++        }, 1);
++        return;
++      }
++      _kz_deferred.push(() => this.remove_request_now(request_ptr));
++      _kz_kick();
+     }
+     start_request(request_ptr) {
+       this.assert_ready();
+@@ -5691,6 +5726,10 @@ Several C libraries are used, and their licenses are listed below:
+       this.event_loop = setInterval(() => {
+         this.event_loop_func();
+       }, 0);
++      this._kz_kick = () => {
++        if (this.event_loop) this.event_loop_func();
++      };
++      _kz_kickables.add(this._kz_kick);
+     }
+     event_loop_func() {
+       let libcurl_active = _session_get_active(this.session_ptr);
+@@ -5699,6 +5738,7 @@ Several C libraries are used, and their licenses are listed below:
+       } else {
+         clearInterval(this.event_loop);
+         this.event_loop = null;
++        _kz_kickables.delete(this._kz_kick);
+       }
+     }
+     close_now() {
+@@ -5876,7 +5916,7 @@ Several C libraries are used, and their licenses are listed below:
+     static create_response(response_data, response_info) {
+       response_info.ok = response_info.status >= 200 && response_info.status < 300;
+       response_info.statusText = status_messages[response_info.status] || "";
+-      if (response_info.status === 204 || response_info.status === 205) {
++      if (response_info.status === 204 || response_info.status === 205 || response_info.status === 304) {
+         response_data = null;
+       }
+       let response_obj = new Response(response_data, response_info);
+@@ -5974,10 +6014,21 @@ Several C libraries are used, and their licenses are listed below:
+       let finish_callback = (error) => {
+         if (error === 0) {
+           this.connected = true;
+-          this.recv_loop = setInterval(() => {
+-            let data = this.recv();
+-            if (data !== null) this.onmessage(data);
+-          }, 0);
++          // drain every queued message per tick, not one per 4ms tick
++          const drain = () => {
++            for (let i = 0; i < 1024; i++) {
++              if (!this.connected) {
++                _kz_kickables.delete(drain);
++                return;
++              }
++              const buffered = this.recv_buffer.length;
++              const data = this.recv();
++              if (data !== null) this.onmessage(data);
++              else if (this.recv_buffer.length === buffered) return;
++            }
++          };
++          this.recv_loop = setInterval(drain, 0);
++          _kz_kickables.add(drain);
+           this.onopen();
+         } else {
+           this.cleanup(error);

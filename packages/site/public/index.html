@@ -6,7 +6,6 @@
 		<title>kaze</title>
 		<script src="/kaze/kaze.js"></script>
 		<script src="/controller/controller.api.js"></script>
-		<script src="/libcurl/index.js"></script>
 		<style>
 			:root {
 				--bg: #000;
@@ -354,6 +353,15 @@
 				throw err;
 			});
 
+			// libcurl (TLS + wisp) runs in a worker, off the thread the
+			// proxied page renders on; falls back to the main thread if needed
+			const transport = new $kazeController.WorkerTransport({
+				scripts: ["/libcurl/index.js"],
+				construct: "LibcurlTransport.LibcurlClient",
+				options: { wisp: WISP },
+			});
+			$kazeController.warmupTransport(transport);
+
 			async function boot() {
 				if (!("serviceWorker" in navigator))
 					throw new Error("service workers unsupported");
@@ -375,7 +383,7 @@
 				const { Controller } = $kazeController;
 				const controller = new Controller({
 					serviceworker: navigator.serviceWorker.controller ?? reg.active,
-					transport: new LibcurlTransport.LibcurlClient({ wisp: WISP }),
+					transport,
 				});
 				await controller.wait();
 				frame = controller.createFrame(frameEl);

@@ -150,13 +150,14 @@ class RemoteTransport implements ProxyTransport {
 	}
 
 	async sendSetCookie(
-		cookies: Array<{ url: URL; cookie: string }>,
+		cookies: Array<{ url: URL; cookie: string; fromJs?: boolean }>,
 		options: CookieSyncOptions = {}
 	): Promise<void> {
 		await this.rpc.call("sendSetCookie", {
-			cookies: cookies.map(({ url, cookie }) => ({
+			cookies: cookies.map(({ url, cookie, fromJs }) => ({
 				url: url.href,
 				cookie,
+				fromJs,
 			})),
 			options,
 		});
@@ -193,16 +194,60 @@ export function load(init: Init) {
 		});
 		return;
 	}
-	if (!("WASM" in self)) {
-		throw new Error("WASM not found in global scope!");
-	}
-	const wasm = Uint8Array.from(atob(self.WASM as string), (c) =>
-		c.charCodeAt(0)
-	);
-	delete (self as any).WASM;
-	setWasm(wasm);
+	setWasm(loadRewriterWasm(init.config));
 
 	new ExecutionContextWrapper(globalThis, init);
+}
+
+/**
+ * The rewriter wasm for this realm. Every proxied page lives (directly or
+ * through popups) under the controller page, which already holds the
+ * compiled module, so reuse it: no download, no base64, no compile. Only
+ * the controller window is trusted for this, never a proxied page.
+ */
+function loadRewriterWasm(config: Config): WebAssembly.Module | Uint8Array {
+	const candidates: any[] = [];
+	try {
+		// ancestors, then the opener's ancestors (popups), a few levels deep
+		let w: any = self;
+		for (let hops = 0; w && hops < 64; hops++) {
+			if (w.parent !== w) w = w.parent;
+			else w = w.opener;
+			if (w) candidates.push(w);
+		}
+	} catch {
+		// cross-origin ancestor: fall through to the network path
+	}
+	for (const w of candidates) {
+		try {
+			if (w.location.pathname.startsWith(config.prefix)) continue;
+			const mod = w.$kaze?.getWasmModule?.();
+			if (mod) return mod;
+		} catch {
+			// not reachable or not ready
+		}
+	}
+
+	// legacy path: a controller that still serves the base64 virtual script
+	if (typeof (self as any).WASM === "string") {
+		const b64 = (self as any).WASM as string;
+		delete (self as any).WASM;
+		const bin = atob(b64);
+		const out = new Uint8Array(bin.length);
+		for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+		return out;
+	}
+
+	// sync is required: page scripts run right after this. Window sync XHR
+	// can't set responseType, so read bytes through x-user-defined.
+	const xhr = new XMLHttpRequest();
+	xhr.open("GET", config.wasmPath, false);
+	xhr.overrideMimeType("text/plain; charset=x-user-defined");
+	xhr.send();
+	const text = xhr.responseText;
+	const out = new Uint8Array(text.length);
+	for (let i = 0; i < text.length; i++) out[i] = text.charCodeAt(i) & 0xff;
+	return out;
 }
 
 function createFrameId() {
@@ -265,7 +310,11 @@ class ExecutionContextWrapper {
 					}
 
 					try {
-						this.cookieJar.setCookies(cookie.cookie, new URL(cookie.url));
+						this.cookieJar.setCookies(
+							cookie.cookie,
+							new URL(cookie.url),
+							cookie.fromJs === true
+						);
 					} catch {
 						console.error("Failed to set cookie", cookie);
 					}
@@ -286,6 +335,11 @@ class ExecutionContextWrapper {
 			"message",
 			this.handleServiceWorkerCookieMessage
 		);
+		// addEventListener (unlike onmessage) leaves the client message queue
+		// paused until DOMContentLoaded: cookie syncs for subresources fetched
+		// while parsing would wait on an ack that can't arrive, stalling the very
+		// requests the parser needs (wikipedia cold load +1s)
+		navigator.serviceWorker?.startMessages();
 
 		this.injectKaze();
 	}

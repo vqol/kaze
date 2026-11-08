@@ -8,3 +8,4 @@ packages/runway/coverage
 .claude/
 packages/site/server.log
 bench-results/
+packages/embed/assets

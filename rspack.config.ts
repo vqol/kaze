@@ -487,6 +487,9 @@ const controllerConfig = createGenericConfig(controllermeta, {
 		api: join(controllerdir, "src/index.ts"),
 		inject: join(controllerdir, "src/inject.ts"),
 		sw: join(controllerdir, "src/sw.ts"),
+		transportworker: join(controllerdir, "src/transport-worker.ts"),
+		rewriteworker: join(controllerdir, "src/rewrite-worker.ts"),
+		fetchworker: join(controllerdir, "src/fetch-worker.ts"),
 	},
 	output: {
 		filename: "controller.[name].js",

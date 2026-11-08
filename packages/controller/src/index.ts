@@ -11,11 +11,13 @@ import {
 	KazeFetchHandler,
 	KazeHeaders,
 	setWasm,
+	getWasmModule,
 	Tap,
 	type CookieSyncOptions,
 	type FetchHooks,
 	type KazeConfig,
 	type KazeContext,
+	registrableDomain,
 	type KazeInterface,
 	type TrackedHistoryState,
 	Plugin,
@@ -32,6 +34,18 @@ import type {
 	FrameErrorHooks,
 } from "./types";
 import { assertRuntimeKazeVersion } from "./version";
+import { coalesceStream } from "./stream";
+import { ProxyHttpCache } from "./http-cache";
+import { RewritePool } from "./rewrite-pool";
+import { WorkerTransport } from "./worker-transport";
+import {
+	BROADCASTCHANNEL_NAME,
+	readCookieState,
+	writeCookieState,
+} from "./cookie-store";
+import { workerInjectScripts, yieldGetInjectScripts } from "./inject-scripts";
+import type { EngineMainRpc, EngineToMain, MainToEngine } from "./fetch-engine";
+export { WorkerTransport, type WorkerTransportInit } from "./worker-transport";
 
 export { versionInfo } from "./version";
 export type Config = {
@@ -71,11 +85,6 @@ const kazeConfig: Partial<KazeConfig> = {
 	maskedfiles: ["inject.js", "kaze.wasm.js"],
 };
 
-type PersistedCookieState = {
-	updatedAt: number;
-	cookies: string;
-};
-
 export class ManagedPlugin extends Plugin {
 	frame: Frame = null!;
 	dependencies: string[] = [];
@@ -86,111 +95,6 @@ export class ManagedPlugin extends Plugin {
 
 	install(frame: Frame): void {
 		this.frame = frame;
-	}
-}
-
-const COOKIE_DB_NAME = "__kaze_controller";
-const COOKIE_STORE_NAME = "state";
-const COOKIE_STATE_KEY = "cookies";
-const BROADCASTCHANNEL_NAME = "__kaze_controller_channel";
-
-let cookieDbPromise: Promise<IDBDatabase> | null = null;
-
-function parsePersistedCookieState(
-	value: unknown
-): PersistedCookieState | null {
-	if (
-		typeof value !== "object" ||
-		value === null ||
-		typeof (value as PersistedCookieState).updatedAt !== "number" ||
-		!Number.isFinite((value as PersistedCookieState).updatedAt) ||
-		typeof (value as PersistedCookieState).cookies !== "string"
-	) {
-		return null;
-	}
-
-	return value as PersistedCookieState;
-}
-
-function requestToPromise<T>(request: IDBRequest<T>): Promise<T> {
-	return new Promise<T>((resolve, reject) => {
-		request.onsuccess = () => resolve(request.result);
-		request.onerror = () =>
-			reject(request.error ?? new Error("IndexedDB request failed"));
-	});
-}
-
-function transactionToPromise(transaction: IDBTransaction): Promise<void> {
-	return new Promise<void>((resolve, reject) => {
-		transaction.oncomplete = () => resolve();
-		transaction.onabort = () =>
-			reject(transaction.error ?? new Error("IndexedDB transaction aborted"));
-		transaction.onerror = () =>
-			reject(transaction.error ?? new Error("IndexedDB transaction failed"));
-	});
-}
-
-function openCookieDatabase(): Promise<IDBDatabase> {
-	if (cookieDbPromise) {
-		return cookieDbPromise;
-	}
-
-	cookieDbPromise = new Promise<IDBDatabase>((resolve, reject) => {
-		const request = indexedDB.open(COOKIE_DB_NAME, 1);
-		request.onupgradeneeded = () => {
-			const db = request.result;
-			if (!db.objectStoreNames.contains(COOKIE_STORE_NAME)) {
-				db.createObjectStore(COOKIE_STORE_NAME);
-			}
-		};
-		request.onsuccess = () => resolve(request.result);
-		request.onerror = () =>
-			reject(request.error ?? new Error("Failed to open cookie database"));
-	});
-
-	return cookieDbPromise;
-}
-
-async function readCookieState(): Promise<PersistedCookieState | null> {
-	try {
-		const db = await openCookieDatabase();
-		const transaction = db.transaction(COOKIE_STORE_NAME, "readonly");
-		const store = transaction.objectStore(COOKIE_STORE_NAME);
-		const value = await requestToPromise(store.get(COOKIE_STATE_KEY));
-		await transactionToPromise(transaction);
-		return parsePersistedCookieState(value);
-	} catch (error) {
-		console.error("Failed to read persisted controller cookies:", error);
-		return null;
-	}
-}
-
-async function writeCookieState(
-	cookies: string,
-	currentUpdatedAt: number
-): Promise<number> {
-	try {
-		const db = await openCookieDatabase();
-		const transaction = db.transaction(COOKIE_STORE_NAME, "readwrite");
-		const store = transaction.objectStore(COOKIE_STORE_NAME);
-		const existing = parsePersistedCookieState(
-			await requestToPromise(store.get(COOKIE_STATE_KEY))
-		);
-		const updatedAt = Math.max(
-			Date.now(),
-			currentUpdatedAt + 1,
-			(existing?.updatedAt ?? 0) + 1
-		);
-		const state: PersistedCookieState = {
-			updatedAt,
-			cookies,
-		};
-		store.put(state, COOKIE_STATE_KEY);
-		await transactionToPromise(transaction);
-		return updatedAt;
-	} catch (error) {
-		console.error("Failed to persist controller cookies:", error);
-		return currentUpdatedAt;
 	}
 }
 
@@ -205,11 +109,50 @@ type ControllerInit = {
 	transport: ProxyTransport;
 	config?: Partial<Config>;
 	kazeConfig?: Partial<KazeConfig>;
+	/** cache proxied subresources (default true) */
+	httpCache?: boolean;
+	/** workers for rewriting scripts and styles (default: based on core count, 0 disables) */
+	rewriteWorkers?: number;
+	/** run requests in a worker when the transport is a WorkerTransport (default true) */
+	fetchWorker?: boolean;
 };
 
 type FrameOptions = {
 	plugins?: ManagedPlugin[];
 };
+
+// The engine worker starts the moment this script loads, so it finishes booting
+// while the page is still registering its service worker.
+let warmEngine: { url: string; worker: Worker } | null = null;
+try {
+	const script = document.currentScript as HTMLScriptElement | null;
+	const kazeScript = [...document.scripts].find((s) =>
+		/\/kaze(\.\w+)?\.js(\?|$)/.test(s.src)
+	);
+	if (script?.src && kazeScript && typeof Worker !== "undefined") {
+		const url = new URL("controller.fetchworker.js", script.src).href;
+		const worker = new Worker(url, { name: "kaze-fetch" });
+		worker.postMessage({ type: "preload", kazeUrl: kazeScript.src });
+		warmEngine = { url, worker };
+	}
+} catch {
+	// the controller starts it later, or falls back to the main thread
+}
+
+/**
+ * Start loading a WorkerTransport now, before the Controller exists. Call it
+ * as early as possible (before registering the service worker): the transport
+ * then finishes loading in parallel instead of after startup.
+ */
+export function warmupTransport(transport: WorkerTransport) {
+	if (!warmEngine) return;
+	const absolute = (p: string) => new URL(p, location.href).href;
+	const { scripts, construct, options, module } = transport.init_;
+	warmEngine.worker.postMessage({
+		type: "warm-transport",
+		spec: { scripts: scripts.map(absolute), construct, options, module },
+	});
+}
 
 export class Controller {
 	id: string;
@@ -228,6 +171,8 @@ export class Controller {
 	private port: MessagePort | null = null;
 
 	transport: ProxyTransport;
+	httpCache: ProxyHttpCache | null = null;
+	rewritePool: RewritePool | null = null;
 	private cookieUpdatedAt = 0;
 	private cookieSyncPromise: Promise<void> | null = null;
 	private cookieSyncDirty = true;
@@ -256,9 +201,154 @@ export class Controller {
 			return;
 		}
 
+		// compile off the main thread while the download streams in; pages
+		// reuse this module (inject.ts) instead of compiling their own copy
 		const resp = await fetch(this.config.wasmPath);
-		setWasm(await resp.arrayBuffer());
+		let mod: WebAssembly.Module;
+		try {
+			mod = await WebAssembly.compileStreaming(resp.clone());
+		} catch {
+			// wrong content-type from the host's static server
+			mod = await WebAssembly.compile(await resp.arrayBuffer());
+		}
+		setWasm(mod);
 		this.wasmAlreadyFetched = true;
+		if (this.engine) this.toEngine({ type: "wasm", module: mod });
+		else this.startRewritePool();
+	}
+
+	private engine: Worker | null = null;
+	private engineRpc: RpcHelper<EngineMainRpc, Record<string, never>> | null =
+		null;
+	private toEngine(m: MainToEngine, transfer: Transferable[] = []) {
+		this.engine?.postMessage(m, transfer);
+	}
+
+	/** Move the request pipeline off this thread, when the transport can move too */
+	private startEngine() {
+		const transport = this.init.transport;
+		if (
+			this.init.fetchWorker === false ||
+			!(transport instanceof WorkerTransport) ||
+			typeof Worker === "undefined"
+		)
+			return;
+		const absolute = (p: string) => new URL(p, location.href).href;
+		const workerFile = (name: string) =>
+			new URL(name, absolute(this.config.injectPath)).href;
+		try {
+			const fileUrl = workerFile("controller.fetchworker.js");
+			const worker =
+				warmEngine?.url === fileUrl
+					? warmEngine.worker
+					: new Worker(fileUrl, { name: "kaze-fetch" });
+			if (warmEngine?.url === fileUrl) warmEngine = null;
+			this.engine = worker;
+			this.engineRpc = new RpcHelper<EngineMainRpc, Record<string, never>>(
+				{ request: (data) => this.methods.request(data) as any },
+				"engine-main",
+				(data, t) => this.toEngine({ type: "main", data }, t)
+			);
+			worker.onmessage = (e: MessageEvent<EngineToMain>) => {
+				const m = e.data;
+				if (m.type === "sw-ready") void this.methods.ready();
+				else if (m.type === "main") this.engineRpc!.recieve(m.data);
+				else if (m.type === "failed") this.abandonEngine(m.error);
+			};
+			worker.onerror = (e) => this.abandonEngine(e.message);
+			const { codec, ...config } = this.config;
+			this.toEngine({
+				type: "init",
+				init: {
+					id: this.id,
+					config,
+					encode: codec.encode.toString(),
+					decode: codec.decode.toString(),
+					kazeConfig: JSON.parse(JSON.stringify(this.kazeConfig)),
+					transport: {
+						scripts: transport.init_.scripts.map(absolute),
+						construct: transport.init_.construct,
+						options: transport.init_.options,
+						module: transport.init_.module,
+					},
+					httpCache: this.init.httpCache !== false,
+					rewriteWorkers: this.rewriteWorkerCount(),
+					rewriteWorkerUrl: workerFile("controller.rewriteworker.js"),
+					kazeUrl: absolute(this.config.kazePath),
+					origin: location.origin,
+					crossOriginIsolated: self.crossOriginIsolated,
+				},
+			});
+		} catch (e) {
+			this.engine = null;
+			console.warn("kaze: fetch worker unavailable:", e);
+		}
+	}
+
+	/** the worker couldn't start (CSP etc.): handle requests on this thread */
+	private abandonEngine(reason: string) {
+		if (!this.engine) return;
+		console.warn("kaze: fetch worker failed, using the main thread:", reason);
+		this.engine.terminate();
+		this.engine = null;
+		if (this.init.httpCache !== false) this.httpCache = new ProxyHttpCache();
+		for (const frame of this.frames) {
+			this.httpCache?.attach(frame.fetchHandler);
+		}
+		if (this.wasmAlreadyFetched) this.startRewritePool();
+		this.setupMessagePort();
+	}
+
+	/** tell the engine about a frame it should serve */
+	registerFrame(prefix: string) {
+		this.toEngine({ type: "frame", prefix });
+	}
+
+	/** cookies set by a frame that stayed on this thread */
+	forwardCookies(
+		cookies: SerializedCookieSyncEntry[],
+		options?: CookieSyncOptions
+	): boolean {
+		if (!this.engine) return false;
+		this.toEngine({ type: "cookies", cookies, options });
+		return true;
+	}
+
+	get usesEngine() {
+		return this.engine !== null;
+	}
+
+	private rewriteWorkerCount() {
+		return (
+			this.init.rewriteWorkers ??
+			Math.min(4, Math.max(1, (navigator.hardwareConcurrency || 2) - 2))
+		);
+	}
+
+	private startRewritePool() {
+		const size = this.rewriteWorkerCount();
+		if (size <= 0) return;
+		try {
+			const absolute = (p: string) => new URL(p, location.href).href;
+			this.rewritePool = new RewritePool(
+				size,
+				new URL(
+					"controller.rewriteworker.js",
+					absolute(this.config.injectPath)
+				).href,
+				{
+					kazeUrl: absolute(this.config.kazePath),
+					module: getWasmModule(),
+					config: JSON.parse(JSON.stringify(this.kazeConfig)),
+					encode: this.config.codec.encode.toString(),
+					decode: this.config.codec.decode.toString(),
+				}
+			);
+			for (const frame of this.frames)
+				frame.fetchHandler.rewriteOffload = this.rewritePool;
+		} catch (e) {
+			console.warn("kaze: rewrite workers unavailable:", e);
+		}
 	}
 
 	private methods: MethodsDefinition<Controllerbound> = {
@@ -321,16 +411,27 @@ export class Controller {
 					clientId: data.clientId,
 				});
 
+				let body = fetchresponse.body;
+				if (body instanceof ReadableStream) {
+					body = coalesceStream(body);
+				} else if (ArrayBuffer.isView(body)) {
+					// rewritten js comes back as a Uint8Array: transfer, don't copy
+					const view = body as unknown as Uint8Array;
+					body =
+						view.byteOffset === 0 && view.byteLength === view.buffer.byteLength
+							? (view.buffer as ArrayBuffer)
+							: (view.slice().buffer as ArrayBuffer);
+				}
+
 				return [
 					{
-						body: fetchresponse.body,
+						body,
 						status: fetchresponse.status,
 						statusText: fetchresponse.statusText,
 						headers: fetchresponse.headers.toRawHeaders(),
 					},
-					fetchresponse.body instanceof ReadableStream ||
-					fetchresponse.body instanceof ArrayBuffer
-						? [fetchresponse.body]
+					body instanceof ReadableStream || body instanceof ArrayBuffer
+						? [body]
 						: [],
 				];
 			} catch (e) {
@@ -371,10 +472,31 @@ export class Controller {
 							this.cookieJar.clear();
 						}
 						this.applyCookieSyncEntries(cookies);
-						await this.persistCookies();
+						this.schedulePersistCookies();
 						await this.propagateCookieSync(cookies, options);
 					},
 					connect: async ({ url, protocols, requestHeaders, port }) => {
+						// handshake cookies come from the authoritative jar, for the
+						// socket's own host (pages only hold their own site's cookies)
+						try {
+							const target = new URL(url.replace(/^ws/, "http"));
+							const origin = requestHeaders.find(
+								([k]) => k.toLowerCase() === "origin"
+							)?.[1];
+							const sameSite =
+								origin &&
+								registrableDomain(new URL(origin).hostname) !==
+									registrableDomain(target.hostname)
+									? "cross-site"
+									: "strict";
+							const cookie = this.cookieJar.getCookies(target, false, sameSite);
+							requestHeaders = requestHeaders.filter(
+								([k]) => k.toLowerCase() !== "cookie"
+							);
+							if (cookie) requestHeaders.push(["Cookie", cookie]);
+						} catch {
+							// keep whatever the page sent
+						}
 						let resolve: (arg: TransportToController["connect"][1]) => void;
 						const promise = new Promise<TransportToController["connect"][1]>(
 							(res) => (resolve = res)
@@ -457,13 +579,17 @@ export class Controller {
 		) as KazeConfig;
 		this.prefix = this.config.prefix + this.id + "/";
 		this.serviceWorkerController = init.serviceworker;
+		this.startEngine();
+		if (init.httpCache !== false && !this.engine)
+			this.httpCache = new ProxyHttpCache();
 
 		this.ready = Promise.all([
 			new Promise<void>((resolve) => {
 				this.readyResolve = resolve;
 			}),
 			this.loadKazeWasm(),
-			this.loadSavedCookies(true),
+			// the engine owns the jar; this thread only mirrors it
+			this.engine ? undefined : this.loadSavedCookies(true),
 		]).then(() => undefined);
 
 		this.rpc = new RpcHelper<Controllerbound, SWbound>(
@@ -483,6 +609,15 @@ export class Controller {
 			this.onCookieSyncMessage
 		);
 		this.setupMessagePort();
+
+		// don't lose a debounced cookie write when the tab goes away
+		addEventListener("pagehide", () => {
+			if (this.persistTimer !== null) {
+				clearTimeout(this.persistTimer);
+				this.persistTimer = null;
+				void this.persistCookies();
+			}
+		});
 
 		navigator.serviceWorker.addEventListener("message", (e) => {
 			if (
@@ -534,9 +669,14 @@ export class Controller {
 		}
 
 		const channel = new MessageChannel();
-		this.port = channel.port1;
-		this.port.addEventListener("message", this.onTabChannelMessage);
-		this.port.start();
+		if (this.engine) {
+			// the service worker talks straight to the engine
+			this.toEngine({ type: "port", port: channel.port1 }, [channel.port1]);
+		} else {
+			this.port = channel.port1;
+			this.port.addEventListener("message", this.onTabChannelMessage);
+			this.port.start();
+		}
 
 		this.serviceWorkerController.postMessage(
 			{
@@ -562,7 +702,11 @@ export class Controller {
 				continue;
 			}
 
-			this.cookieJar.setCookies(entry.cookie, new URL(entry.url));
+			this.cookieJar.setCookies(
+				entry.cookie,
+				new URL(entry.url),
+				entry.fromJs === true
+			);
 		}
 	}
 
@@ -601,6 +745,16 @@ export class Controller {
 		});
 
 		return this.cookieSyncPromise;
+	}
+
+	private persistTimer: ReturnType<typeof setTimeout> | null = null;
+	/** coalesce IndexedDB writes: bursts of Set-Cookie become one write */
+	schedulePersistCookies() {
+		if (this.persistTimer !== null) return;
+		this.persistTimer = setTimeout(() => {
+			this.persistTimer = null;
+			void this.persistCookies();
+		}, 30);
 	}
 
 	async persistCookies(): Promise<void> {
@@ -644,69 +798,6 @@ export class Controller {
 	}
 }
 
-function base64Encode(text: string) {
-	return btoa(
-		new TextEncoder()
-			.encode(text)
-			.reduce(
-				(data, byte) => (data.push(String.fromCharCode(byte)), data),
-				[] as any
-			)
-			.join("")
-	);
-}
-
-function yieldGetInjectScripts(
-	config: Config,
-	kzconfig: KazeConfig,
-	prefix: URL,
-	cookieJar: CookieJar,
-	codecEncode: (input: string) => string,
-	codecDecode: (input: string) => string
-) {
-	const getInjectScripts: KazeInterface["getInjectScripts"] = (
-		meta,
-		handler,
-		htmlcontext,
-		script
-	) => {
-		function base64Encode(text: string) {
-			return btoa(
-				new TextEncoder()
-					.encode(text)
-					.reduce(
-						(data, byte) => (data.push(String.fromCharCode(byte)), data),
-						[] as any
-					)
-					.join("")
-			);
-		}
-		return [
-			script(config.kazePath),
-			script(prefix.href + config.virtualWasmPath),
-			script(config.injectPath),
-			script(
-				"data:text/javascript;charset=utf-8;base64," +
-					base64Encode(`
-					document.querySelectorAll("script[kaze-injected]").forEach(script => script.remove());
-					$kazeController.load({
-						config: ${JSON.stringify(config)},
-						kzconfig: ${JSON.stringify(kzconfig)},
-						prefix: new URL("${prefix.href}"),
-						cookies: ${JSON.stringify(cookieJar.dump())},
-						yieldGetInjectScripts: ${yieldGetInjectScripts.toString()},
-						codecEncode: ${codecEncode.toString()},
-						codecDecode: ${codecDecode.toString()},
-						initHeaders: ${JSON.stringify(htmlcontext.headers ?? [])},
-						history: ${JSON.stringify(htmlcontext.history ?? [])},
-					})
-				`)
-			),
-		];
-	};
-	return getInjectScripts;
-}
-
 export class Frame {
 	id: string;
 	prefix: string;
@@ -731,44 +822,15 @@ export class Frame {
 					this.controller.config.codec.encode,
 					this.controller.config.codec.decode
 				),
-				getWorkerInjectScripts: (meta, type, script) => {
-					let str = "";
-
-					str += script(this.controller.config.kazePath);
-					str += script(this.prefix + this.controller.config.virtualWasmPath);
-					str += script(
-						"data:text/javascript;charset=utf-8;base64," +
-							base64Encode(`
-					(()=>{
-						const { KazeClient, CookieJar, setWasm } = $kaze;
-
-						setWasm(Uint8Array.from(atob(self.WASM), (c) => c.charCodeAt(0)));
-						delete self.WASM;
-
-						const kzconfig = ${JSON.stringify(this.controller.kazeConfig)};
-						const prefix = new URL("${this.prefix}", location.href);
-
-						const context = {
-							config: kzconfig,
-							prefix,
-							interface: {
-								codecEncode: ${this.controller.config.codec.encode.toString()},
-								codecDecode: ${this.controller.config.codec.decode.toString()},
-							},
-						};
-
-						const client = new KazeClient(globalThis, {
-							context,
-							transport: null,
-						});
-
-						client.hook();
-					})();
-					`)
-					);
-
-					return str;
-				},
+				getWorkerInjectScripts: (_meta, _type, script) =>
+					workerInjectScripts(
+						this.controller.config,
+						this.controller.kazeConfig,
+						this.prefix,
+						this.controller.config.codec.encode.toString(),
+						this.controller.config.codec.decode.toString(),
+						script
+					),
 				codecEncode: this.controller.config.codec.encode,
 				codecDecode: this.controller.config.codec.decode,
 			},
@@ -789,14 +851,16 @@ export class Frame {
 			context: this.context,
 			transport: controller.transport,
 			async sendSetCookie(cookies, options) {
-				await controller.persistCookies();
-				await controller.propagateCookieSync(
-					cookies.map(({ url, cookie }) => ({
-						url: url.href,
-						cookie,
-					})),
-					options
-				);
+				const entries = cookies.map(({ url, cookie, fromJs }) => ({
+					url: url.href,
+					cookie,
+					fromJs,
+				}));
+				if (controller.forwardCookies(entries, options)) return;
+				// persisting is for other tabs / reloads; the response only has
+				// to wait until the requesting page's jar has the cookies
+				controller.schedulePersistCookies();
+				await controller.propagateCookieSync(entries, options);
 			},
 			async fetchBlobUrl(url) {
 				return BareResponse.fromNativeResponse(await fetch(url));
@@ -815,6 +879,14 @@ export class Frame {
 		element[CONTROLLERFRAME] = this;
 
 		this.plugins = options.plugins ?? [];
+		if (controller.rewritePool)
+			this.fetchHandler.rewriteOffload = controller.rewritePool;
+		// a plugin that brings its own cache (utils' HttpCachePlugin) wins
+		//@ts-ignore dumb hack, fix later (this fails in ci due to types not being available first build)
+		if (!this.plugins.some((p) => p.name === "kaze-http-cache"))
+			controller.httpCache?.attach(this.fetchHandler);
+		// plugins hook this thread's handler, so those frames stay here
+		if (this.plugins.length === 0) controller.registerFrame(this.prefix);
 		for (const plugin of this.plugins) {
 			for (const dependency of plugin.dependencies) {
 				const dependencyPlugin = this.plugins.find(

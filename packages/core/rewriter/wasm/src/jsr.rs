@@ -14,12 +14,13 @@ use crate::{
 	 get_obj, get_str, set_obj,
 };
 
-// slightly modified https://github.com/ungap/random-uuid/blob/main/index.js
+// random hex tag; one getRandomValues call (was one per digit)
 #[wasm_bindgen(inline_js = r#"
 export function scramtag() {
-    return (""+1e10).replace(/[018]/g,
-      c => (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
-    );
+    const b = crypto.getRandomValues(new Uint8Array(6));
+    let s = "";
+    for (let i = 0; i < 6; i++) s += (b[i] | 0x100).toString(16).slice(1);
+    return s;
 }
 "#)]
 extern "C" {

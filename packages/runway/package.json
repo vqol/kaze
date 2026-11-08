@@ -14,6 +14,7 @@
 	},
 	"dependencies": {
 		"@mercuryworkshop/libcurl-transport": "catalog:",
+		"@mercuryworkshop/epoxy-transport": "catalog:",
 		"@kaze/core": "workspace:*",
 		"@kaze/controller": "workspace:*",
 		"@mercuryworkshop/wisp-js": "catalog:",

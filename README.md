@@ -1,58 +1,78 @@
 <h1 align="center">kaze</h1>
 
-kaze is an interception-based web proxy: it sandboxes arbitrary web content in the browser by intercepting requests in a service worker and rewriting HTML, CSS and JavaScript on the fly. Traffic goes through a [wisp](https://github.com/MercuryWorkshop/wisp-protocol) server.
+a web proxy that runs in ur browser. its a fork of [scramjet](https://github.com/MercuryWorkshop/scramjet) by mercury workshop, renamed and tuned to be stupid fast.
 
-kaze is a fork of [Scramjet](https://github.com/MercuryWorkshop/scramjet) by Mercury Workshop, renamed and tuned for page-load speed. It is licensed under the AGPL-3.0, like the original.
+## speed
 
-## Packages
+fastest in 34 of 39 tests vs scramjet and ultraviolet, including every page load test. 91 overall (uv 51, scramjet 2 47, scramjet 1.1 37).
 
-| Package                                                          | What it is                                                      |
-| ---------------------------------------------------------------- | --------------------------------------------------------------- |
-| `packages/core` (`@kaze/core`)                                   | Rewriter (Rust/oxc → wasm), fetch handler and client runtime    |
-| `packages/controller` (`@kaze/controller`)                       | Service worker + controller that wires frames to a transport    |
-| `packages/site` (`@kaze/site`)                                   | Minimal black-and-white search page with a built-in wisp server |
-| `packages/runway`                                                | Playwright correctness suite (and load benchmark)               |
-| `packages/utils`, `bootstrap`, `rpc`, `demo`, `create-proxy-app` | Supporting packages and the full demo                           |
+all tested on a local wisp server btw, so ur numbers will be diffrent on a real one.
 
-## Development
+![page load](assets/benchmarks/kaze-bench-1-page-loads.png)
 
-### Dependencies
+![network](assets/benchmarks/kaze-bench-2-network.png)
 
-- Node.js 23 or later and `pnpm`
-- `rustup` (the nightly toolchain is selected automatically)
-- `wasm-bindgen` 0.2.105
-- [Binaryen's `wasm-opt`](https://github.com/WebAssembly/binaryen)
-- [this `wasm-snip` fork](https://github.com/r58Playz/wasm-snip)
+![runtime](assets/benchmarks/kaze-bench-3-runtime.png)
 
-### Building
+still loses on download size (it ships a full js parser), memory, startup and `replaceState`. working on it.
+
+live results are at `/benchmarks/` on the site, it updates every time u run a benchmark.
+
+## add it to ur site
+
+```html
+<script src="/kaze-assets/kaze-embed.js" defer></script>
+<div data-kaze="https://example.com" style="height: 600px"></div>
+```
+
+thats it for the page. setup for ur server is in [packages/embed](packages/embed/README.md).
+
+not on npm yet btw, so build it from here for now:
+
+```sh
+cd packages/embed && pnpm build
+```
+
+## coming from scramjet
+
+most sites just swap one script. run `node packages/embed/cli.mjs migrate ur-site/` and it shows u what it would change, add `--write` to do it. full guide [here](packages/embed/MIGRATING.md).
+
+## whats in here
+
+| package               | what                                     |
+| --------------------- | ---------------------------------------- |
+| `packages/core`       | rewriter (rust to wasm), hooks, fetching |
+| `packages/controller` | service worker and the fetch engine      |
+| `packages/embed`      | one line site setup, scramjet migration  |
+| `packages/site`       | search page, wisp server, benchmark site |
+| `packages/runway`     | tests and benchmarks                     |
+
+## building
+
+u need node 23+, pnpm, rustup, `wasm-bindgen` 0.2.105, [wasm-opt](https://github.com/WebAssembly/binaryen) and [this wasm-snip fork](https://github.com/r58Playz/wasm-snip).
 
 ```sh
 pnpm i
 cd packages/core && RELEASE=1 pnpm rewriter:build && cd ../..
-pnpm build   # or: npx rspack build --mode production
+pnpm build
 ```
 
-`RELEASE=1` builds an optimized rewriter (tuned for speed; `OPTIMIZE_FOR_SIZE=1` for a smaller wasm).
-
-### Running
-
-The search page with its wisp server:
+## running
 
 ```sh
-cd packages/site && pnpm start   # http://localhost:8080
+cd packages/site && pnpm start   # localhost:8080
 ```
 
-The full demo with live rebuilds:
-
-```sh
-pnpm dev   # http://localhost:4141
-```
-
-### Tests
+## tests and benchmarks
 
 ```sh
 cd packages/runway
-OMIT_WPT=1 node --experimental-strip-types src/index.ts [test-name-filter]
+OMIT_WPT=1 node --experimental-strip-types src/index.ts [filter]
+node --experimental-strip-types src/bench/compare.ts
 ```
 
-Set `RUNWAY_CHANNEL=chrome` to use an installed Chrome instead of Playwright's Chromium.
+add `RUNWAY_CHANNEL=chrome` if u dont have playwright's chromium. the benchmark needs uv and scramjet installed, check the top of `compare.ts`.
+
+## license
+
+AGPL-3.0, same as scramjet. definately go look at their stuff too.

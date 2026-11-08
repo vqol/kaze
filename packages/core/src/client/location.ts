@@ -44,7 +44,7 @@ export function createLocationProxy(client: KazeClient, self: GlobalThis) {
 		if (native.get) {
 			desc.get = new Proxy(native.get, {
 				apply() {
-					return client.url[prop];
+					return client.urlProp(prop);
 				},
 			});
 		}
@@ -83,7 +83,7 @@ export function createLocationProxy(client: KazeClient, self: GlobalThis) {
 	// functions
 	fakeLocation.toString = new Proxy(self.location.toString, {
 		apply() {
-			return client.url.href;
+			return client.urlProp("href");
 		},
 	});
 

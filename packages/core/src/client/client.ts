@@ -14,6 +14,7 @@ import {
 	unrewriteUrl,
 	type URLMeta,
 } from "@rewriters/url";
+import type { URLMetaSnapshot } from "@rewriters/url";
 import {
 	flagEnabled,
 	HtmlRewriterHooks,
@@ -192,6 +193,31 @@ function findBox(global: Window, seen: Window[]): SingletonBox | null {
 	return null;
 }
 
+/** Hook call context: methods live on the prototype, so a call allocates once */
+class ApplyCtx {
+	declare this: any;
+	newTarget = null;
+	early = false;
+	value: any = undefined;
+	constructor(
+		public fn: any,
+		that: any,
+		public args: any[],
+		private applyFn: typeof Reflect_apply
+	) {
+		(this as any).this = that;
+	}
+	return(r: any) {
+		this.early = true;
+		this.value = r;
+	}
+	call() {
+		this.early = true;
+		this.value = this.applyFn(this.fn, (this as any).this, this.args);
+		return this.value;
+	}
+}
+
 export class KazeClient {
 	locationProxy: any;
 	indirectEval: any;
@@ -274,36 +300,31 @@ export class KazeClient {
 
 		this.indirectEval = createIndirectEval(this);
 		this.wrapfn = createWrapFn(this, global);
+		// hot path for every hook: a plain object lookup, the Proxy only
+		// resolves a native the first time it is asked for
+		const nativeCache: Record<string, any> = Object.create(null);
+		const resolveNative = (prop: string) => {
+			if (prop in nativeCache) return nativeCache[prop];
+			const split = prop.split(".");
+			const realProp = split.pop();
+			const realTarget = split.reduce((a, b) => a?.[b], this.global);
+
+			if (!realTarget) return;
+
+			return (nativeCache[prop] = Reflect_get(realTarget, realProp));
+		};
 		this.natives = {
-			store: new Proxy(
-				{},
-				{
-					get: (target, prop: string) => {
-						if (prop in target) {
-							return target[prop];
-						}
-
-						const split = prop.split(".");
-						const realProp = split.pop();
-						const realTarget = split.reduce((a, b) => a?.[b], this.global);
-
-						if (!realTarget) return;
-
-						const original = Reflect_get(realTarget, realProp);
-						target[prop] = original;
-
-						return target[prop];
-					},
-				}
-			),
+			store: new Proxy(nativeCache, {
+				get: (_target, prop: string) => resolveNative(prop),
+			}),
 			construct(target, ...args) {
-				const original = this.store[target];
+				const original = nativeCache[target] ?? resolveNative(target);
 				if (!original) return null;
 
 				return new original(...args);
 			},
 			call(target, that, ...args) {
-				const original = this.store[target];
+				const original = nativeCache[target] ?? resolveNative(target);
 				if (!original) return null;
 
 				return original.call(that, ...args);
@@ -351,7 +372,43 @@ export class KazeClient {
 		};
 		// eslint-disable-next-line @typescript-eslint/no-this-alias
 		const client = this;
+		let referrerMemo: {
+			doc: Document;
+			count: number;
+			last: Element | null;
+			value: string;
+		} | null = null;
+		let snapshotCache:
+			| (URLMetaSnapshot & {
+					raw: string;
+					baseEl: Element | undefined;
+					baseAttr: string | null;
+			  })
+			| null = null;
 		this.meta = {
+			// one read of location and <base> per rewrite instead of several
+			snapshot() {
+				const raw = client.global.location.href;
+				const baseEl = iswindow ? client.liveTags("base")[0] : undefined;
+				const baseAttr = baseEl ? baseEl.getAttribute("href") : null;
+				if (
+					snapshotCache &&
+					snapshotCache.raw === raw &&
+					snapshotCache.baseEl === baseEl &&
+					snapshotCache.baseAttr === baseAttr
+				)
+					return snapshotCache;
+				const base = this.base;
+				snapshotCache = {
+					raw,
+					baseEl,
+					baseAttr,
+					baseHref: base.href,
+					baseOrigin: base.origin,
+					initiatorOrigin: this.origin.origin,
+				};
+				return snapshotCache;
+			},
 			get origin() {
 				const url = client.url;
 				// about:blank / about:srcdoc documents inherit their creator's origin.
@@ -374,11 +431,10 @@ export class KazeClient {
 			},
 			get base() {
 				if (iswindow) {
-					const base = client.natives.call(
-						"Document.prototype.querySelector",
-						client.global.document,
-						"base"
-					);
+					// live collection instead of querySelector("base"): blink keeps
+					// its position cached until the dom changes, so repeated url
+					// rewrites stop walking the whole document each time
+					const base = client.liveTags("base")[0];
 					if (base) {
 						let url = base.getAttribute("href");
 						if (!url) return client.url;
@@ -507,34 +563,64 @@ export class KazeClient {
 				if (!iswindow) return "";
 
 				// TODO: need to nullify the actual meta tag so it still sends unsafe-url
-				const meta = [
-					...client.natives.call(
-						"Document.prototype.querySelectorAll",
-						client.global.document,
-						"meta[name='referrer']"
-					),
-					...client.natives.call(
-						"Document.prototype.querySelectorAll",
-						client.global.document,
-						"meta[name='referrer-policy']"
-					),
-					...client.natives.call(
-						"Document.prototype.querySelectorAll",
-						client.global.document,
-						"meta[http-equiv='referrer-policy']"
-					),
-				];
-				const last = meta[meta.length - 1];
-				if (last) {
-					return last.getAttribute("content");
+				// one pass over a live <meta> collection; same pick as the old three
+				// querySelectorAll calls: last match of the last non-empty group
+				// (name=referrer, then name=referrer-policy, then http-equiv)
+				const metas = client.liveTags("meta");
+				// unchanged <meta> set: same answer as last time
+				const count = metas.length;
+				const lastMeta = count ? metas[count - 1] : null;
+				if (
+					referrerMemo &&
+					referrerMemo.doc === client.global.document &&
+					referrerMemo.count === count &&
+					referrerMemo.last === lastMeta
+				)
+					return referrerMemo.value;
+				let byName: Element | null = null;
+				let byPolicyName: Element | null = null;
+				let byEquiv: Element | null = null;
+				for (let i = 0; i < metas.length; i++) {
+					const el = metas[i];
+					const name = el.getAttribute("name");
+					if (name === "referrer") byName = el;
+					else if (name === "referrer-policy") byPolicyName = el;
+					if (
+						el.getAttribute("http-equiv")?.toLowerCase() === "referrer-policy"
+					)
+						byEquiv = el;
 				}
+				const last = byEquiv ?? byPolicyName ?? byName;
+				const value = last ? last.getAttribute("content") : "";
+				referrerMemo = {
+					doc: client.global.document,
+					count,
+					last: lastMeta,
+					value,
+				};
 
-				return "";
+				return value;
 			},
 		};
 		this.locationProxy = createLocationProxy(this, global);
 
 		global[KAZECLIENT] = this;
+	}
+
+	private liveTagCache: {
+		doc: Document;
+		tags: Record<string, HTMLCollection>;
+	} | null = null;
+	/** live getElementsByTagName collection for the current document, cached */
+	liveTags(tag: string): HTMLCollection {
+		const doc = this.global.document as Document;
+		if (!this.liveTagCache || this.liveTagCache.doc !== doc)
+			this.liveTagCache = { doc, tags: {} };
+		return (this.liveTagCache.tags[tag] ??= this.natives.call(
+			"Document.prototype.getElementsByTagName",
+			doc,
+			tag
+		));
 	}
 
 	/** Apply document injection init when a client was already installed (e.g. early contentWindow). */
@@ -583,8 +669,34 @@ export class KazeClient {
 		}
 	}
 
+	// unrewriting location.href is a pure function of it; url is read several
+	// times per rewriteUrl (meta.origin, meta.base), so remember the last one
+	// one URL object per href: treat it as read-only (copy before mutating).
+	// every rewrite reads it several times (meta.origin, meta.base, flags)
+	private urlRaw: string | null = null;
+	private urlCached: _URL | null = null;
 	get url(): _URL {
-		return new _URL(this.unrewriteUrl(this.global.location.href));
+		const raw = this.global.location.href;
+		if (raw !== this.urlRaw || !this.urlCached) {
+			this.urlCached = new _URL(this.unrewriteUrl(raw));
+			this.urlRaw = raw;
+		}
+		return this.urlCached;
+	}
+
+	// location.href / .host / ... getters: component strings for the current
+	// href, computed once per navigation instead of a new URL per read
+	private urlPropsRaw: string | null = null;
+	private urlProps: Record<string, string> = {};
+	urlProp(prop: string): string {
+		const raw = this.global.location.href;
+		if (raw !== this.urlPropsRaw) {
+			this.urlProps = {};
+			this.urlPropsRaw = raw;
+		}
+		let v = this.urlProps[prop];
+		if (v === undefined) v = this.urlProps[prop] = this.url[prop];
+		return v;
 	}
 
 	set url(url: _URL | string) {
@@ -645,6 +757,7 @@ export class KazeClient {
 		delete target[prop];
 
 		const h: ProxyHandler<any> = {};
+		let fastPath: boolean | undefined;
 
 		let applyFn: typeof Reflect_apply;
 		let constructFn: typeof Reflect_construct;
@@ -737,34 +850,17 @@ return { apply, construct };
 
 		if (handler.apply) {
 			h.apply = (fn: any, that: any, args: any[]) => {
-				let returnValue: any = undefined;
-				let earlyreturn = false;
-
-				const ctx: ProxyCtx<any, "apply"> = {
-					fn,
-					this: that,
-					args,
-					newTarget: null,
-					return: (r: any) => {
-						earlyreturn = true;
-						returnValue = r;
-					},
-					call: () => {
-						earlyreturn = true;
-						returnValue = applyFn(ctx.fn, ctx.this, ctx.args);
-
-						return returnValue;
-					},
-				};
-				if (
+				const ctx = new ApplyCtx(fn, that, args, applyFn) as ApplyCtx &
+					ProxyCtx<any, "apply">;
+				fastPath ??=
 					!this.flagEnabled("debugTrampolines") &&
-					this.flagEnabled("allowFailedIntercepts")
-				) {
+					this.flagEnabled("allowFailedIntercepts");
+				if (fastPath) {
 					// fast path, no error detection
 					handler.apply(ctx);
 
-					if (earlyreturn) {
-						return returnValue;
+					if (ctx.early) {
+						return ctx.value;
 					}
 					return applyFn(ctx.fn, ctx.this, ctx.args);
 				}
@@ -807,8 +903,8 @@ return { apply, construct };
 
 				Error.prepareStackTrace = pst;
 
-				if (earlyreturn) {
-					return returnValue;
+				if (ctx.early) {
+					return ctx.value;
 				}
 
 				return applyFn(ctx.fn, ctx.this, ctx.args);

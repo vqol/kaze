@@ -62,10 +62,39 @@
 
 				statusEl.textContent = "Initializing controller...";
 
-				const innerTransport = new LibcurlClient({
-					wisp: "ws://localhost:4501/",
+				// same setup the site uses: the transport lives in the fetch worker
+				const transport = new $kazeController.WorkerTransport({
+					scripts: [
+						"/libcurl/index.js",
+						"/runway-cleartext-https-transport.js",
+					],
+					construct: "RunwayWorkerTransport",
+					options: { wisp: "ws://localhost:4501/" },
 				});
-				const transport = new RunwayCleartextHttpsTransport(innerTransport);
+				const cleartext = new BroadcastChannel("runway-cleartext");
+				// the worker loads this mapping's listener with the transport, so
+				// keep sending until it answers
+				window.__runwaySyncCleartext = () =>
+					new Promise((resolve) => {
+						const payload = () => ({
+							hosts: window.__runwayCleartextHttpsHosts,
+							site: window.__runwayCleartextSite,
+						});
+						const retry = setInterval(
+							() => cleartext.postMessage(payload()),
+							50
+						);
+						const finish = () => {
+							clearInterval(retry);
+							resolve();
+						};
+						const giveUp = setTimeout(finish, 5000);
+						cleartext.onmessage = () => {
+							clearTimeout(giveUp);
+							finish();
+						};
+						cleartext.postMessage(payload());
+					});
 
 				const sw = navigator.serviceWorker.controller ?? registration.active;
 				if (!sw) {

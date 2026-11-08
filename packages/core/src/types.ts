@@ -27,6 +27,7 @@ export type KazeFlags = {
 	allowFailedIntercepts: boolean;
 	debugTrampolines: boolean;
 	debugSourceURL: boolean;
+	streamHtml: boolean;
 	encapsulateWorkers: boolean;
 };
 

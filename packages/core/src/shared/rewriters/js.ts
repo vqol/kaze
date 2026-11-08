@@ -3,7 +3,14 @@ import { URLMeta } from "@rewriters/url";
 
 import { getRewriter, JsRewriterOutput } from "@rewriters/wasm";
 import { bytesToBase64 } from "@/shared/util";
-import { TextDecoder_decode, _RegExp, Performance_now } from "../snapshot";
+import {
+	TextDecoder_decode,
+	_RegExp,
+	RegExp_exec,
+	Object_keys,
+	_WeakMap,
+	Performance_now,
+} from "../snapshot";
 
 // eslint-disable-next-line kaze-core/no-globals
 Error.stackTraceLimit = 50;
@@ -14,16 +21,32 @@ type RewriterResult = {
 	tag: string;
 	errors: string[];
 };
+// the rewriter caches its parsed config by object identity, so hand it the
+// same object for as long as globals + prefix stay the same
+const jsConfigCache: WeakMap<object, { prefix: string; obj: object }> =
+	new _WeakMap([]);
+function jsConfigFor(context: KazeContext) {
+	const globals = context.config.globals;
+	const prefix = context.prefix.pathname;
+	const hit = jsConfigCache.get(globals);
+	if (hit && hit.prefix === prefix) return hit.obj;
+	const obj = { ...globals, prefix };
+	jsConfigCache.set(globals, { prefix, obj });
+	return obj;
+}
+
 function rewriteJsWasm(
 	input: string | Uint8Array,
 	source: string | null,
 	context: KazeContext,
 	meta: URLMeta,
-	isModule: boolean
+	isModule: boolean,
+	// meta.base is a getter that queries the document; read it once per rewrite
+	base: URL = meta.base
 ): RewriterResult {
 	const [rewriter, ret] = getRewriter(context, meta);
 
-	const flagsobj = resolveFlags(context, meta.base);
+	const flagsobj = resolveFlags(context, base);
 
 	try {
 		let out: JsRewriterOutput;
@@ -31,27 +54,21 @@ function rewriteJsWasm(
 		// try {
 		if (typeof input === "string") {
 			out = rewriter.rewrite_js(
-				{
-					...context.config.globals,
-					prefix: context.prefix.pathname,
-				},
+				jsConfigFor(context),
 				flagsobj,
 				context.interface.codecEncode,
 				input,
-				meta.base.href,
+				base.href,
 				source || "(unknown)",
 				isModule
 			);
 		} else {
 			out = rewriter.rewrite_js_bytes(
-				{
-					...context.config.globals,
-					prefix: context.prefix.pathname,
-				},
+				jsConfigFor(context),
 				flagsobj,
 				context.interface.codecEncode,
 				input,
-				meta.base.href,
+				base.href,
 				source || "(unknown)",
 				isModule
 			);
@@ -89,10 +106,19 @@ export function rewriteJsInner(
 	url: string | null,
 	context: KazeContext,
 	meta: URLMeta,
-	isModule = false
+	isModule = false,
+	base: URL = meta.base
 ) {
-	return rewriteJsWasm(js, url, context, meta, isModule);
+	return rewriteJsWasm(js, url, context, meta, isModule, base);
 }
+
+// Every construct the rewriter can change contains one of these (see
+// rewriter/js/src/visitor.rs), so source without any comes back byte-identical
+// and doesn't need the wasm round trip. Backslash covers unicode-escaped
+// identifiers, "[" computed access, "..." rest patterns. Keep in sync with the
+// visitor. Most inline handlers and small evals land here.
+const NEEDS_REWRITE =
+	/[[\\]|location|parent|top|eval|postMessage|debugger|import|export|new|\.\.\./;
 
 export function rewriteJs(
 	js: string | Uint8Array,
@@ -101,9 +127,26 @@ export function rewriteJs(
 	meta: URLMeta,
 	isModule = false
 ): string | Uint8Array {
-	const flags = resolveFlags(context, meta.base);
+	// snapshotted exec: a page must not be able to force this path
+	if (typeof js === "string" && RegExp_exec(NEEDS_REWRITE, js) === null) {
+		const { flags, siteFlags } = context.config;
+		const f =
+			siteFlags && Object_keys(siteFlags).length
+				? resolveFlags(context, meta.base)
+				: flags;
+		if (
+			f.allowInvalidJs &&
+			!f.sourcemaps &&
+			!f.captureErrors &&
+			!f.scramitize &&
+			!f.rewriterLogs
+		)
+			return js;
+	}
+	const base = meta.base;
+	const flags = resolveFlags(context, base);
 	try {
-		const res = rewriteJsInner(js, url, context, meta, isModule);
+		const res = rewriteJsInner(js, url, context, meta, isModule, base);
 		let newjs = res.js;
 
 		if (flags.sourcemaps && res.map) {

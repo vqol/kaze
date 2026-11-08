@@ -54,10 +54,14 @@ fi
 )
 wasm-bindgen --target web --out-dir out/ ../target/wasm32-unknown-unknown/release/wasm.wasm
 
+# - import.meta.url: not available in the iife bundles
+# - instanceof WebAssembly.Module: false for a module compiled in another realm,
+#   and pages reuse the controller's compiled module (see controller inject.ts)
+SEDS=(-e 's/import.meta.url/""/g' -e 's/module instanceof WebAssembly.Module/Object.prototype.toString.call(module) === "[object WebAssembly.Module]"/g')
 if [[ "$OSTYPE" == "darwin"* ]] || [[ "$OSTYPE" == "freebsd"* ]] || [[ "$OSTYPE" == "dragonfly"* ]]; then
-	sed -i '' 's/import.meta.url/""/g' out/wasm.js
+	sed -i '' "${SEDS[@]}" out/wasm.js
 else
-	sed -i 's/import.meta.url/""/g' out/wasm.js
+	sed -i "${SEDS[@]}" out/wasm.js
 fi
 
 cd ../../

@@ -32,6 +32,7 @@ export type TransferResponse = {
 export type SerializedCookieSyncEntry = {
 	url: string;
 	cookie: string;
+	fromJs?: boolean;
 };
 
 export type Controllerbound = {

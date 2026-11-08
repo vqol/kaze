@@ -9,7 +9,7 @@
  *
  * Legacy shape `{ hostname, httpPort }` is still accepted (`hostname` treated as the only root).
  *
- * **Host allowlist** (`window.__runwayCleartextHttpsHosts`): cleartext https→http for
+ * **Host allowlist** (`globalThis.__runwayCleartextHttpsHosts`): cleartext https→http for
  * listed hosts without snap (legacy).
  *
  * `window.__runwayCleartextHttps = false` disables all rewriting.
@@ -74,10 +74,7 @@ class RunwayCleartextHttpsTransport {
 	 * @returns {{ url: URL; logicalHostname: string | null }}
 	 */
 	#rewriteWithMeta(remote) {
-		if (
-			typeof window !== "undefined" &&
-			window.__runwayCleartextHttps === false
-		) {
+		if (globalThis.__runwayCleartextHttps === false) {
 			return { url: remote, logicalHostname: null };
 		}
 		const url = new URL(remote.href);
@@ -90,8 +87,8 @@ class RunwayCleartextHttpsTransport {
 		}
 
 		const snap =
-			typeof window !== "undefined" && window.__runwayCleartextSite != null
-				? window.__runwayCleartextSite
+			globalThis.__runwayCleartextSite != null
+				? globalThis.__runwayCleartextSite
 				: null;
 		const host = url.hostname;
 		const defaultTlsPort = url.port === "" || url.port === "443";
@@ -126,7 +123,7 @@ class RunwayCleartextHttpsTransport {
 
 		const list =
 			typeof window !== "undefined"
-				? window.__runwayCleartextHttpsHosts
+				? globalThis.__runwayCleartextHttpsHosts
 				: undefined;
 		const loopback =
 			host === "localhost" || host === "127.0.0.1" || host === "[::1]";
@@ -171,4 +168,19 @@ class RunwayCleartextHttpsTransport {
 	}
 }
 
-window.RunwayCleartextHttpsTransport = RunwayCleartextHttpsTransport;
+globalThis.RunwayCleartextHttpsTransport = RunwayCleartextHttpsTransport;
+
+// in the fetch worker: built from plain options, mapping pushed from the page
+if (typeof importScripts === "function") {
+	self.RunwayWorkerTransport = class extends RunwayCleartextHttpsTransport {
+		constructor(options) {
+			super(new LibcurlTransport.LibcurlClient(options));
+		}
+	};
+	const channel = new BroadcastChannel("runway-cleartext");
+	channel.onmessage = (e) => {
+		self.__runwayCleartextHttpsHosts = e.data.hosts;
+		self.__runwayCleartextSite = e.data.site;
+		channel.postMessage("ok");
+	};
+}

@@ -45,6 +45,7 @@ export const defaultConfig: KazeConfig = {
 		allowFailedIntercepts: false,
 		encapsulateWorkers: true,
 		debugSourceURL: false,
+		streamHtml: true,
 	},
 	siteFlags: {},
 	maskedfiles: [],
