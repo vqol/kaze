@@ -15,8 +15,11 @@ import {
 	Uint8Array_ctor,
 } from "@/shared/snapshot";
 
+type WasmSource = Uint8Array | ArrayBuffer | WebAssembly.Module;
+
 let wasm_u8: Uint8Array | undefined;
 let wasm_module: WebAssembly.Module | undefined;
+let wasm_loader: (() => WasmSource) | undefined;
 // set once the wasm instance exists; initWasm is called on every rewrite so
 // this must stay a cheap early return (compiling the module is tens of ms)
 let wasm_ready = false;
@@ -24,10 +27,19 @@ let wasm_ready = false;
 /**
  * Provide the rewriter wasm, either as raw bytes or as an already compiled
  * WebAssembly.Module (preferred: modules can be shared between same-origin
- * realms/workers via postMessage and skip recompilation entirely).
+ * realms/workers via postMessage and skip recompilation entirely), or as a
+ * synchronous loader that returns either, called on the first rewrite: a
+ * realm that never rewrites anything never downloads the wasm.
  */
-export function setWasm(wasm: Uint8Array | ArrayBuffer | WebAssembly.Module) {
+export function setWasm(wasm: WasmSource | (() => WasmSource)) {
 	if (wasm_ready) return;
+	if (typeof wasm === "function") {
+		wasm_loader = wasm;
+		wasm_u8 = undefined;
+		wasm_module = undefined;
+		return;
+	}
+	wasm_loader = undefined;
 	if (ArrayBuffer_isView(wasm)) {
 		wasm_u8 = wasm as Uint8Array;
 		wasm_module = undefined;
@@ -43,6 +55,12 @@ export function setWasm(wasm: Uint8Array | ArrayBuffer | WebAssembly.Module) {
 /** The compiled rewriter module, compiling it if needed. */
 export function getWasmModule(): WebAssembly.Module {
 	if (wasm_module) return wasm_module;
+	if (!wasm_u8 && wasm_loader) {
+		const load = wasm_loader;
+		wasm_loader = undefined;
+		setWasm(load());
+		if (wasm_module) return wasm_module;
+	}
 	if (!wasm_u8)
 		throw new Error("rewriter wasm not found (was setWasm called?)");
 

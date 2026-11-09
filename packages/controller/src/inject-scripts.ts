@@ -88,12 +88,25 @@ export function workerInjectScripts(
 					(()=>{
 						const { KazeClient, CookieJar, setWasm } = $kaze;
 
-						// workers may sync-xhr binary; served from http cache after the first
-						const xhr = new XMLHttpRequest();
-						xhr.open("GET", ${JSON.stringify(config.wasmPath)}, false);
-						xhr.responseType = "arraybuffer";
-						xhr.send();
-						setWasm(new Uint8Array(xhr.response));
+						// fetched on the first rewrite instead of at startup: most workers
+						// never rewrite anything. That runs after client.hook() (with page
+						// code around), so take the native XHR and the url now. Workers
+						// may sync-xhr binary; served from http cache after the first.
+						const wasmUrl = new URL(${JSON.stringify(config.wasmPath)}, location.href).href;
+						const apply = Reflect.apply;
+						const XHR = XMLHttpRequest;
+						const U8 = Uint8Array;
+						const xhrOpen = XHR.prototype.open;
+						const xhrSend = XHR.prototype.send;
+						const setResponseType = Object.getOwnPropertyDescriptor(XHR.prototype, "responseType").set;
+						const getResponse = Object.getOwnPropertyDescriptor(XHR.prototype, "response").get;
+						setWasm(() => {
+							const xhr = new XHR();
+							apply(xhrOpen, xhr, ["GET", wasmUrl, false]);
+							apply(setResponseType, xhr, ["arraybuffer"]);
+							apply(xhrSend, xhr, []);
+							return new U8(apply(getResponse, xhr, []));
+						});
 
 						const kzconfig = ${JSON.stringify(kzconfig)};
 						const prefix = new URL("${prefix}", location.href);
