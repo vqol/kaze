@@ -60,13 +60,15 @@ const BEFORE = arg("--before");
 const libcurl2 = path.dirname(
 	fileURLToPath(import.meta.resolve("@mercuryworkshop/libcurl-transport"))
 );
+// the libcurl kaze actually serves
+const kazeLibcurlDist = libcurl2;
 
 const allSpecs: ProxySpec[] = [
 	controllerSpec({
 		label: "kaze",
 		coreDist: path.join(KAZE_DIR, "core/dist"),
 		controllerDist: path.join(KAZE_DIR, "controller/dist"),
-		libcurlDist: libcurl2,
+		libcurlDist: kazeLibcurlDist,
 		mount: "/kaze/",
 		coreFile: "kaze.js",
 		global: "$kazeController",
@@ -331,43 +333,68 @@ async function microRuns(browser: Browser, origin: string | null) {
 	return { raw: out, summary };
 }
 
+// First-visit bytes: everything a fresh visitor downloads before the first
+// proxied page can load, transport included (kaze loads libcurl.js in a worker
+// before its first request, so leaving it out made kaze look ~2MB lighter
+// than it is). `br` is brotli 11, what kaze's servers send.
 function payloadSizes() {
-	const gz = (f: string) =>
-		fs.existsSync(f) ? zlib.gzipSync(fs.readFileSync(f)).length : 0;
-	const raw = (f: string) => (fs.existsSync(f) ? fs.statSync(f).size : 0);
-	const sum = (fs_: string[]) => ({
-		raw: fs_.reduce((a, f) => a + raw(f), 0),
-		gzip: fs_.reduce((a, f) => a + gz(f), 0),
-	});
+	const read = (f: string) => (fs.existsSync(f) ? fs.readFileSync(f) : null);
+	const sum = (fs_: string[]) => {
+		const out = { raw: 0, gzip: 0, br: 0 };
+		for (const f of fs_) {
+			const b = read(f);
+			if (!b) continue;
+			out.raw += b.length;
+			out.gzip += zlib.gzipSync(b).length;
+			out.br += zlib.brotliCompressSync(b, {
+				params: { [zlib.constants.BROTLI_PARAM_QUALITY]: 11 },
+			}).length;
+		}
+		return out;
+	};
+	// a split libcurl build ships its wasm next to the script
+	const libcurl = (dir: string, file: string) => [
+		`${dir}/${file}`,
+		`${dir}/libcurl.wasm`,
+	];
 	const core = path.join(KAZE_DIR, "core/dist");
 	const ctl = path.join(KAZE_DIR, "controller/dist");
 	const base = path.join(BASELINE, "packages");
+	const nmLibcurl = `${NM}/@mercuryworkshop/libcurl-transport/dist`;
+	const kazeRuntime = [
+		`${core}/kaze.js`,
+		`${core}/kaze.wasm`,
+		`${ctl}/controller.api.js`,
+		`${ctl}/controller.inject.js`,
+		`${ctl}/controller.sw.js`,
+		`${ctl}/controller.fetchworker.js`,
+		`${ctl}/controller.rewriteworker.js`,
+	];
+	const kazeLibcurl = libcurl(kazeLibcurlDist, "index.js");
 	return {
-		kaze: sum([
-			`${core}/kaze.js`,
-			`${core}/kaze.wasm`,
-			`${ctl}/controller.api.js`,
-			`${ctl}/controller.inject.js`,
-			`${ctl}/controller.sw.js`,
-			`${ctl}/controller.fetchworker.js`,
-			`${ctl}/controller.rewriteworker.js`,
-		]),
+		kaze: sum([...kazeRuntime, ...kazeLibcurl]),
+		// the same split, for comparing against older results
+		kazeRuntime: sum(kazeRuntime),
+		kazeTransport: sum(kazeLibcurl),
 		scramjet2: sum([
 			`${base}/core/dist/scramjet.js`,
 			`${base}/core/dist/scramjet.wasm`,
 			`${base}/controller/dist/controller.api.js`,
 			`${base}/controller/dist/controller.inject.js`,
 			`${base}/controller/dist/controller.sw.js`,
+			...libcurl(libcurl2, "index.js"),
 		]),
 		scramjet1: sum([
 			`${NM}/@mercuryworkshop/scramjet/dist/scramjet.all.js`,
 			`${NM}/@mercuryworkshop/scramjet/dist/scramjet.wasm.wasm`,
+			...libcurl(nmLibcurl, "index.mjs"),
 		]),
-		uv: sum(
-			["uv.bundle.js", "uv.client.js", "uv.handler.js", "uv.sw.js"].map(
+		uv: sum([
+			...["uv.bundle.js", "uv.client.js", "uv.handler.js", "uv.sw.js"].map(
 				(f) => `${NM}/@titaniumnetwork-dev/ultraviolet/dist/${f}`
-			)
-		),
+			),
+			...libcurl(nmLibcurl, "index.mjs"),
+		]),
 	};
 }
 
