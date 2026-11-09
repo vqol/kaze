@@ -1,42 +1,67 @@
 {
-	"updated": "2026-11-08T11:23:15.671Z",
+	"updated": "2026-11-09T19:21:43.775Z",
 	"conditions": {
 		"wisp": "local wisp-js server (one per proxy, same machine)",
-		"chrome": "156.0.8078.81",
-		"cpu": "AMD Ryzen 5 7500F 6-Core Processor             ",
+		"chrome": "153.0.8010.12",
+		"cpu": "Intel(R) Xeon(R) Processor @ 2.10GHz",
 		"runs": 5,
 		"microSessions": 2
 	},
 	"ranAt": {
-		"bare": "2026-11-08T11:17:24.641Z",
-		"kaze": "2026-11-08T11:23:15.671Z",
-		"scramjet1": "2026-11-08T11:17:24.641Z",
-		"scramjet2": "2026-11-08T11:17:24.641Z",
-		"uv": "2026-11-08T11:17:24.641Z"
+		"bare": "2026-11-09T19:21:43.775Z",
+		"kaze": "2026-11-09T19:21:43.775Z",
+		"scramjet1": "2026-11-09T19:21:43.775Z",
+		"scramjet2": "2026-11-09T19:21:43.775Z",
+		"uv": "2026-11-09T19:21:43.775Z"
 	},
 	"engines": [
-		{ "id": "kaze", "name": "kaze", "reference": false },
-		{ "id": "scramjet1", "name": "Scramjet 1.1", "reference": false },
-		{ "id": "scramjet2", "name": "Scramjet 2", "reference": false },
-		{ "id": "uv", "name": "Ultraviolet", "reference": false },
-		{ "id": "bare", "name": "Chrome (no proxy)", "reference": true }
+		{
+			"id": "kaze",
+			"name": "kaze",
+			"reference": false
+		},
+		{
+			"id": "scramjet1",
+			"name": "Scramjet 1.1",
+			"reference": false
+		},
+		{
+			"id": "scramjet2",
+			"name": "Scramjet 2",
+			"reference": false
+		},
+		{
+			"id": "uv",
+			"name": "Ultraviolet",
+			"reference": false
+		},
+		{
+			"id": "bare",
+			"name": "Chrome (no proxy)",
+			"reference": true
+		}
 	],
 	"overall": {
-		"kaze": 90.70434188969804,
-		"scramjet1": 37.31901646902044,
-		"scramjet2": 47.383464856069935,
-		"uv": 50.96034849870063
+		"kaze": 93.36231770472824,
+		"scramjet1": 39.16555230973016,
+		"scramjet2": 38.16151213653681,
+		"uv": 53.83502724179866
 	},
-	"wins": { "kaze": 34, "scramjet1": 1, "scramjet2": 0, "uv": 4 },
-	"totalMetrics": 39,
+	"wins": {
+		"kaze": 23,
+		"scramjet1": 1,
+		"scramjet2": 1,
+		"uv": 5
+	},
+	"totalMetrics": 30,
 	"categories": [
 		{
 			"name": "Page load (cold)",
 			"scores": {
 				"kaze": 100,
-				"scramjet1": 29.192631715266014,
-				"scramjet2": 51.98685315700199,
-				"uv": 69.09262901746538
+				"scramjet1": 33.85329418231071,
+				"scramjet2": 30.11769471238942,
+				"uv": 74.93552670225965
 			},
 			"metrics": [
 				{
@@ -45,11 +70,26 @@
 					"better": "lower",
 					"winner": "kaze",
 					"values": {
-						"kaze": { "v": 227, "text": "227 ms" },
-						"scramjet1": { "v": 1545.7999999998137, "text": "1.55 s" },
-						"scramjet2": { "v": 1758.3999999994412, "text": "1.76 s" },
-						"uv": { "v": 322.1000000005588, "text": "322 ms" },
-						"bare": { "v": 129.09999999962747, "text": "129 ms" }
+						"kaze": {
+							"v": 571.3999999999069,
+							"text": "571 ms"
+						},
+						"scramjet1": {
+							"v": 4378.5,
+							"text": "4.38 s"
+						},
+						"scramjet2": {
+							"v": 4655.5,
+							"text": "4.66 s"
+						},
+						"uv": {
+							"v": 665.5,
+							"text": "666 ms"
+						},
+						"bare": {
+							"v": 254.19999999995343,
+							"text": "254 ms"
+						}
 					}
 				},
 				{
@@ -58,54 +98,26 @@
 					"better": "lower",
 					"winner": "kaze",
 					"values": {
-						"kaze": { "v": 164.19999999925494, "text": "164 ms" },
-						"scramjet1": { "v": 224.59999999962747, "text": "225 ms" },
-						"scramjet2": { "v": 229.69999999925494, "text": "230 ms" },
-						"uv": { "v": 258, "text": "258 ms" },
-						"bare": { "v": 75.20000000018626, "text": "75 ms" }
-					}
-				},
-				{
-					"id": "load-wikipedia",
-					"label": "Wikipedia — cold load",
-					"better": "lower",
-					"winner": "kaze",
-					"values": {
-						"kaze": { "v": 441.6000000005588, "text": "442 ms" },
-						"scramjet1": null,
-						"scramjet2": { "v": 655.7000000001863, "text": "656 ms" },
-						"uv": { "v": 586.5, "text": "587 ms" },
-						"bare": { "v": 289.5, "text": "290 ms" }
-					}
-				},
-				{
-					"id": "load-google",
-					"label": "Google — cold load",
-					"better": "lower",
-					"winner": "kaze",
-					"values": {
-						"kaze": { "v": 561.2999999998137, "text": "561 ms" },
-						"scramjet1": { "v": 693.5, "text": "694 ms" },
-						"scramjet2": { "v": 626.7000000001863, "text": "627 ms" },
-						"uv": { "v": 972.0999999996275, "text": "972 ms" },
-						"bare": { "v": 406.5, "text": "407 ms" }
-					}
-				},
-				{
-					"id": "load-github",
-					"label": "GitHub — cold load",
-					"better": "lower",
-					"winner": "kaze",
-					"values": {
-						"kaze": { "v": 1241.3999999985099, "text": "1.24 s" },
-						"scramjet1": { "v": 2543.9000000003725, "text": "2.54 s" },
-						"scramjet2": { "v": 1819.800000000745, "text": "1.82 s" },
-						"uv": {
-							"v": 1537.4000000003725,
-							"text": "1.54 s",
-							"incomplete": true
+						"kaze": {
+							"v": 403,
+							"text": "403 ms"
 						},
-						"bare": { "v": 1098.5999999996275, "text": "1.10 s" }
+						"scramjet1": {
+							"v": 458.89999999990687,
+							"text": "459 ms"
+						},
+						"scramjet2": {
+							"v": 545.3000000000466,
+							"text": "545 ms"
+						},
+						"uv": {
+							"v": 616.2000000001863,
+							"text": "616 ms"
+						},
+						"bare": {
+							"v": 151.19999999995343,
+							"text": "151 ms"
+						}
 					}
 				}
 			]
@@ -114,9 +126,9 @@
 			"name": "First contentful paint",
 			"scores": {
 				"kaze": 100,
-				"scramjet1": 24.785793832017593,
-				"scramjet2": 50.85023616593619,
-				"uv": 75.46872044989405
+				"scramjet1": 25.917687316817545,
+				"scramjet2": 22.14342998978946,
+				"uv": 62.23689848478956
 			},
 			"metrics": [
 				{
@@ -125,11 +137,26 @@
 					"better": "lower",
 					"winner": "kaze",
 					"values": {
-						"kaze": { "v": 148, "text": "148 ms" },
-						"scramjet1": { "v": 1460, "text": "1.46 s" },
-						"scramjet2": { "v": 1636, "text": "1.64 s" },
-						"uv": { "v": 252, "text": "252 ms" },
-						"bare": { "v": 76, "text": "76 ms" }
+						"kaze": {
+							"v": 284,
+							"text": "284 ms"
+						},
+						"scramjet1": {
+							"v": 4136,
+							"text": "4.14 s"
+						},
+						"scramjet2": {
+							"v": 4344,
+							"text": "4.34 s"
+						},
+						"uv": {
+							"v": 468,
+							"text": "468 ms"
+						},
+						"bare": {
+							"v": 92,
+							"text": "92 ms"
+						}
 					}
 				},
 				{
@@ -138,50 +165,26 @@
 					"better": "lower",
 					"winner": "kaze",
 					"values": {
-						"kaze": { "v": 160, "text": "160 ms" },
-						"scramjet1": { "v": 192, "text": "192 ms" },
-						"scramjet2": { "v": 224, "text": "224 ms" },
-						"uv": { "v": 248, "text": "248 ms" },
-						"bare": { "v": 80, "text": "80 ms" }
-					}
-				},
-				{
-					"id": "fcp-wikipedia",
-					"label": "Wikipedia — first paint",
-					"better": "lower",
-					"winner": "kaze",
-					"values": {
-						"kaze": { "v": 336, "text": "336 ms" },
-						"scramjet1": null,
-						"scramjet2": { "v": 464, "text": "464 ms" },
-						"uv": { "v": 376, "text": "376 ms" },
-						"bare": { "v": 208, "text": "208 ms" }
-					}
-				},
-				{
-					"id": "fcp-google",
-					"label": "Google — first paint",
-					"better": "lower",
-					"winner": "kaze",
-					"values": {
-						"kaze": { "v": 328, "text": "328 ms" },
-						"scramjet1": { "v": 364, "text": "364 ms" },
-						"scramjet2": { "v": 352, "text": "352 ms" },
-						"uv": { "v": 332, "text": "332 ms" },
-						"bare": { "v": 260, "text": "260 ms" }
-					}
-				},
-				{
-					"id": "fcp-github",
-					"label": "GitHub — first paint",
-					"better": "lower",
-					"winner": "kaze",
-					"values": {
-						"kaze": { "v": 524, "text": "524 ms" },
-						"scramjet1": { "v": 2132, "text": "2.13 s" },
-						"scramjet2": { "v": 672, "text": "672 ms" },
-						"uv": { "v": 716, "text": "716 ms", "incomplete": true },
-						"bare": { "v": 500, "text": "500 ms" }
+						"kaze": {
+							"v": 360,
+							"text": "360 ms"
+						},
+						"scramjet1": {
+							"v": 368,
+							"text": "368 ms"
+						},
+						"scramjet2": {
+							"v": 480,
+							"text": "480 ms"
+						},
+						"uv": {
+							"v": 564,
+							"text": "564 ms"
+						},
+						"bare": {
+							"v": 148,
+							"text": "148 ms"
+						}
 					}
 				}
 			]
@@ -190,9 +193,9 @@
 			"name": "Warm reload",
 			"scores": {
 				"kaze": 100,
-				"scramjet1": 42.78827248924317,
-				"scramjet2": 41.01179474548469,
-				"uv": 67.20205854623786
+				"scramjet1": 26.949254435202246,
+				"scramjet2": 24.106652890277573,
+				"uv": 69.60653907139735
 			},
 			"metrics": [
 				{
@@ -201,11 +204,26 @@
 					"better": "lower",
 					"winner": "kaze",
 					"values": {
-						"kaze": { "v": 191.10000000149012, "text": "191 ms" },
-						"scramjet1": { "v": 1567, "text": "1.57 s" },
-						"scramjet2": { "v": 1764.2000000001863, "text": "1.76 s" },
-						"uv": { "v": 258.19999999925494, "text": "258 ms" },
-						"bare": { "v": 127.1000000005588, "text": "127 ms" }
+						"kaze": {
+							"v": 417.39999999990687,
+							"text": "417 ms"
+						},
+						"scramjet1": {
+							"v": 4115.399999999907,
+							"text": "4.12 s"
+						},
+						"scramjet2": {
+							"v": 4972.09999999986,
+							"text": "4.97 s"
+						},
+						"uv": {
+							"v": 527.8000000000466,
+							"text": "528 ms"
+						},
+						"bare": {
+							"v": 226.60000000009313,
+							"text": "227 ms"
+						}
 					}
 				},
 				{
@@ -214,54 +232,26 @@
 					"better": "lower",
 					"winner": "kaze",
 					"values": {
-						"kaze": { "v": 115, "text": "115 ms" },
-						"scramjet1": { "v": 188.59999999962747, "text": "189 ms" },
-						"scramjet2": { "v": 176.5, "text": "177 ms" },
-						"uv": { "v": 202.09999999962747, "text": "202 ms" },
-						"bare": { "v": 64.40000000037253, "text": "64 ms" }
-					}
-				},
-				{
-					"id": "warm-wikipedia",
-					"label": "Wikipedia — warm reload",
-					"better": "lower",
-					"winner": "kaze",
-					"values": {
-						"kaze": { "v": 140, "text": "140 ms" },
-						"scramjet1": { "v": 409.40000000037253, "text": "409 ms" },
-						"scramjet2": { "v": 318.79999999981374, "text": "319 ms" },
-						"uv": { "v": 372.20000000018626, "text": "372 ms" },
-						"bare": { "v": 73.30000000074506, "text": "73 ms" }
-					}
-				},
-				{
-					"id": "warm-google",
-					"label": "Google — warm reload",
-					"better": "lower",
-					"winner": "kaze",
-					"values": {
-						"kaze": { "v": 298.5, "text": "299 ms" },
-						"scramjet1": { "v": 374.09999999962747, "text": "374 ms" },
-						"scramjet2": { "v": 502, "text": "502 ms" },
-						"uv": { "v": 345, "text": "345 ms" },
-						"bare": { "v": 300.1000000005588, "text": "300 ms" }
-					}
-				},
-				{
-					"id": "warm-github",
-					"label": "GitHub — warm reload",
-					"better": "lower",
-					"winner": "kaze",
-					"values": {
-						"kaze": { "v": 446.59999999962747, "text": "447 ms" },
-						"scramjet1": { "v": 631.8000000007451, "text": "632 ms" },
-						"scramjet2": { "v": 709.3999999985099, "text": "709 ms" },
-						"uv": {
-							"v": 277.8999999985099,
-							"text": "278 ms",
-							"incomplete": true
+						"kaze": {
+							"v": 264.30000000004657,
+							"text": "264 ms"
 						},
-						"bare": { "v": 360.19999999925494, "text": "360 ms" }
+						"scramjet1": {
+							"v": 369.0999999998603,
+							"text": "369 ms"
+						},
+						"scramjet2": {
+							"v": 381.80000000004657,
+							"text": "382 ms"
+						},
+						"uv": {
+							"v": 431.4000000001397,
+							"text": "431 ms"
+						},
+						"bare": {
+							"v": 122.9000000001397,
+							"text": "123 ms"
+						}
 					}
 				}
 			]
@@ -269,22 +259,34 @@
 		{
 			"name": "Startup",
 			"scores": {
-				"kaze": 90.21252796372573,
-				"scramjet1": 100,
-				"scramjet2": 96.9350961535172,
-				"uv": 77.84749034698056
+				"kaze": 100,
+				"scramjet1": 79.51116475554886,
+				"scramjet2": 63.25012001918894,
+				"uv": 59.53456845912408
 			},
 			"metrics": [
 				{
 					"id": "boot",
 					"label": "Proxy startup (SW + init)",
 					"better": "lower",
-					"winner": "scramjet1",
+					"winner": "kaze",
 					"values": {
-						"kaze": { "v": 89.40000000037253, "text": "89 ms" },
-						"scramjet1": { "v": 80.64999999990687, "text": "81 ms" },
-						"scramjet2": { "v": 83.20000000018626, "text": "83 ms" },
-						"uv": { "v": 103.6000000005588, "text": "104 ms" },
+						"kaze": {
+							"v": 131.75,
+							"text": "132 ms"
+						},
+						"scramjet1": {
+							"v": 165.70000000006985,
+							"text": "166 ms"
+						},
+						"scramjet2": {
+							"v": 208.30000000004657,
+							"text": "208 ms"
+						},
+						"uv": {
+							"v": 221.29999999993015,
+							"text": "221 ms"
+						},
 						"bare": null
 					}
 				}
@@ -294,9 +296,9 @@
 			"name": "Request latency",
 			"scores": {
 				"kaze": 100,
-				"scramjet1": 17.6097643882203,
-				"scramjet2": 71.26992296965626,
-				"uv": 26.972141199176015
+				"scramjet1": 31.569646078664032,
+				"scramjet2": 72.13057286003792,
+				"uv": 45.30523847867576
 			},
 			"metrics": [
 				{
@@ -305,11 +307,26 @@
 					"better": "lower",
 					"winner": "kaze",
 					"values": {
-						"kaze": { "v": 1.400000000372529, "text": "1.4 ms" },
-						"scramjet1": { "v": 4.2999999998137355, "text": "4.3 ms" },
-						"scramjet2": { "v": 1.699999999254942, "text": "1.7 ms" },
-						"uv": { "v": 4, "text": "4.0 ms" },
-						"bare": { "v": 1, "text": "1.0 ms" }
+						"kaze": {
+							"v": 4.350000000034925,
+							"text": "4.4 ms"
+						},
+						"scramjet1": {
+							"v": 11.949999999953434,
+							"text": "12 ms"
+						},
+						"scramjet2": {
+							"v": 6.5,
+							"text": "6.5 ms"
+						},
+						"uv": {
+							"v": 8.300000000046566,
+							"text": "8.3 ms"
+						},
+						"bare": {
+							"v": 2.150000000023283,
+							"text": "2.2 ms"
+						}
 					}
 				},
 				{
@@ -318,11 +335,26 @@
 					"better": "lower",
 					"winner": "kaze",
 					"values": {
-						"kaze": { "v": 1.199999999254942, "text": "1.2 ms" },
-						"scramjet1": { "v": 4.2000000001862645, "text": "4.2 ms" },
-						"scramjet2": { "v": 1.5, "text": "1.5 ms" },
-						"uv": { "v": 4, "text": "4.0 ms" },
-						"bare": { "v": 0.900000000372529, "text": "0.9 ms" }
+						"kaze": {
+							"v": 4.5499999999883585,
+							"text": "4.5 ms"
+						},
+						"scramjet1": {
+							"v": 12.100000000034925,
+							"text": "12 ms"
+						},
+						"scramjet2": {
+							"v": 5.849999999976717,
+							"text": "5.8 ms"
+						},
+						"uv": {
+							"v": 8.800000000046566,
+							"text": "8.8 ms"
+						},
+						"bare": {
+							"v": 1.8999999999650754,
+							"text": "1.9 ms"
+						}
 					}
 				},
 				{
@@ -331,11 +363,26 @@
 					"better": "lower",
 					"winner": "kaze",
 					"values": {
-						"kaze": { "v": 49.80000000074506, "text": "50 ms" },
-						"scramjet1": { "v": 361.30000000074506, "text": "361 ms" },
-						"scramjet2": { "v": 76.29999999981374, "text": "76 ms" },
-						"uv": { "v": 74.1000000005588, "text": "74 ms" },
-						"bare": { "v": 49.40000000037253, "text": "49 ms" }
+						"kaze": {
+							"v": 141.10000000003492,
+							"text": "141 ms"
+						},
+						"scramjet1": {
+							"v": 437.5,
+							"text": "438 ms"
+						},
+						"scramjet2": {
+							"v": 195.3499999998603,
+							"text": "195 ms"
+						},
+						"uv": {
+							"v": 204.19999999983702,
+							"text": "204 ms"
+						},
+						"bare": {
+							"v": 81.40000000002328,
+							"text": "81 ms"
+						}
 					}
 				},
 				{
@@ -344,11 +391,26 @@
 					"better": "lower",
 					"winner": "kaze",
 					"values": {
-						"kaze": { "v": 0.30000000074505806, "text": "0.3 ms" },
-						"scramjet1": { "v": 4, "text": "4.0 ms" },
-						"scramjet2": { "v": 0.5, "text": "0.5 ms" },
-						"uv": { "v": 4, "text": "4.0 ms" },
-						"bare": { "v": 0.10000000055879354, "text": "0.1 ms" }
+						"kaze": {
+							"v": 0.8999999999650754,
+							"text": "0.9 ms"
+						},
+						"scramjet1": {
+							"v": 4,
+							"text": "4.0 ms"
+						},
+						"scramjet2": {
+							"v": 1.2500000001164153,
+							"text": "1.3 ms"
+						},
+						"uv": {
+							"v": 4,
+							"text": "4.0 ms"
+						},
+						"bare": {
+							"v": 0.45000000001164153,
+							"text": "0.5 ms"
+						}
 					}
 				}
 			]
@@ -356,10 +418,10 @@
 		{
 			"name": "Throughput",
 			"scores": {
-				"kaze": 98.4620491236471,
-				"scramjet1": 49.477053215469525,
-				"scramjet2": 65.96494447217104,
-				"uv": 49.820029732791525
+				"kaze": 85.65175059950239,
+				"scramjet1": 51.825708882343,
+				"scramjet2": 54.93207939044471,
+				"uv": 58.63089199648268
 			},
 			"metrics": [
 				{
@@ -368,11 +430,26 @@
 					"better": "higher",
 					"winner": "uv",
 					"values": {
-						"kaze": { "v": 154.66408893157265, "text": "155 MB/s" },
-						"scramjet1": { "v": 157.79092702184118, "text": "158 MB/s" },
-						"scramjet2": { "v": 93.97944199706313, "text": "94.0 MB/s" },
-						"uv": { "v": 162.02531645569618, "text": "162 MB/s" },
-						"bare": { "v": 299.6254681627037, "text": "300 MB/s" }
+						"kaze": {
+							"v": 60.572513007939136,
+							"text": "60.6 MB/s"
+						},
+						"scramjet1": {
+							"v": 62.49220144065004,
+							"text": "62.5 MB/s"
+						},
+						"scramjet2": {
+							"v": 37.9039274058415,
+							"text": "37.9 MB/s"
+						},
+						"uv": {
+							"v": 96.39774187023667,
+							"text": "96.4 MB/s"
+						},
+						"bare": {
+							"v": 539.215686274821,
+							"text": "539 MB/s"
+						}
 					}
 				},
 				{
@@ -381,11 +458,26 @@
 					"better": "higher",
 					"winner": "kaze",
 					"values": {
-						"kaze": { "v": 15.290519877697616, "text": "15.3 MB/s" },
-						"scramjet1": { "v": 14.828544949026877, "text": "14.8 MB/s" },
-						"scramjet2": { "v": 11.217049915869197, "text": "11.2 MB/s" },
-						"uv": { "v": 14.765596160950073, "text": "14.8 MB/s" },
-						"bare": { "v": 42.826552462569474, "text": "42.8 MB/s" }
+						"kaze": {
+							"v": 12.967756691558467,
+							"text": "13.0 MB/s"
+						},
+						"scramjet1": {
+							"v": 12.692806100924457,
+							"text": "12.7 MB/s"
+						},
+						"scramjet2": {
+							"v": 8.290615951460662,
+							"text": "8.3 MB/s"
+						},
+						"uv": {
+							"v": 12.341215251701986,
+							"text": "12.3 MB/s"
+						},
+						"bare": {
+							"v": 22.528453700053685,
+							"text": "22.5 MB/s"
+						}
 					}
 				},
 				{
@@ -394,11 +486,26 @@
 					"better": "higher",
 					"winner": "kaze",
 					"values": {
-						"kaze": { "v": 117.30205278720524, "text": "117 MB/s" },
-						"scramjet1": { "v": 15.04324934186311, "text": "15.0 MB/s" },
-						"scramjet2": { "v": 79.12957467809873, "text": "79.1 MB/s" },
-						"uv": { "v": 15.020653398433337, "text": "15.0 MB/s" },
-						"bare": { "v": 232.5581395323653, "text": "233 MB/s" }
+						"kaze": {
+							"v": 66.93126566523004,
+							"text": "66.9 MB/s"
+						},
+						"scramjet1": {
+							"v": 14.682940382435739,
+							"text": "14.7 MB/s"
+						},
+						"scramjet2": {
+							"v": 44.13344807296625,
+							"text": "44.1 MB/s"
+						},
+						"uv": {
+							"v": 14.174751966950923,
+							"text": "14.2 MB/s"
+						},
+						"bare": {
+							"v": 62.92525121432498,
+							"text": "62.9 MB/s"
+						}
 					}
 				}
 			]
@@ -406,23 +513,38 @@
 		{
 			"name": "JS rewriting",
 			"scores": {
-				"kaze": 100,
-				"scramjet1": 75.58859029671201,
-				"scramjet2": 66.58664989217135,
-				"uv": 13.435344229561078
+				"kaze": 91.42134391043778,
+				"scramjet1": 86.25222528599481,
+				"scramjet2": 78.28284599287439,
+				"uv": 16.187044148075334
 			},
 			"metrics": [
 				{
 					"id": "bigScript",
 					"label": "Load + rewrite 2.6 MB script",
 					"better": "lower",
-					"winner": "kaze",
+					"winner": "scramjet1",
 					"values": {
-						"kaze": { "v": 21.299999998882413, "text": "21 ms" },
-						"scramjet1": { "v": 26.700000000186265, "text": "27 ms" },
-						"scramjet2": { "v": 35.200000000186265, "text": "35 ms" },
-						"uv": { "v": 59, "text": "59 ms" },
-						"bare": { "v": 4.7999999998137355, "text": "4.8 ms" }
+						"kaze": {
+							"v": 64.55000000004657,
+							"text": "65 ms"
+						},
+						"scramjet1": {
+							"v": 53.95000000006985,
+							"text": "54 ms"
+						},
+						"scramjet2": {
+							"v": 65.94999999995343,
+							"text": "66 ms"
+						},
+						"uv": {
+							"v": 102.95000000006985,
+							"text": "103 ms"
+						},
+						"bare": {
+							"v": 10.700000000011642,
+							"text": "11 ms"
+						}
 					}
 				},
 				{
@@ -431,11 +553,23 @@
 					"better": "lower",
 					"winner": "kaze",
 					"values": {
-						"kaze": { "v": 15.900000000372529, "text": "16 ms" },
-						"scramjet1": { "v": 22.200000000186265, "text": "22 ms" },
-						"scramjet2": { "v": 21.699999999254942, "text": "22 ms" },
+						"kaze": {
+							"v": 32.25,
+							"text": "32 ms"
+						},
+						"scramjet1": {
+							"v": 43.34999999997672,
+							"text": "43 ms"
+						},
+						"scramjet2": {
+							"v": 43.04999999993015,
+							"text": "43 ms"
+						},
 						"uv": null,
-						"bare": { "v": 4.6000000005587935, "text": "4.6 ms" }
+						"bare": {
+							"v": 8.800000000046566,
+							"text": "8.8 ms"
+						}
 					}
 				}
 			]
@@ -443,10 +577,10 @@
 		{
 			"name": "Runtime hook overhead",
 			"scores": {
-				"kaze": 98.43902753332283,
-				"scramjet1": 10.000639161819787,
-				"scramjet2": 9.06772323135854,
-				"uv": 47.06492825473687
+				"kaze": 91.40424919656046,
+				"scramjet1": 8.856401694475183,
+				"scramjet2": 9.42238883319134,
+				"uv": 45.707451199162
 			},
 			"metrics": [
 				{
@@ -455,37 +589,82 @@
 					"better": "lower",
 					"winner": "kaze",
 					"values": {
-						"kaze": { "v": 340.0000000372529, "text": "340 ns" },
-						"scramjet1": { "v": 2479.9999999813735, "text": "2.5 µs" },
-						"scramjet2": { "v": 2800, "text": "2.8 µs" },
-						"uv": { "v": 1870.0000000186265, "text": "1.9 µs" },
-						"bare": { "v": 169.99999997206032, "text": "170 ns" }
+						"kaze": {
+							"v": 562.5000000029104,
+							"text": "563 ns"
+						},
+						"scramjet1": {
+							"v": 3407.4999999982538,
+							"text": "3.4 µs"
+						},
+						"scramjet2": {
+							"v": 4195.000000001164,
+							"text": "4.2 µs"
+						},
+						"uv": {
+							"v": 2825,
+							"text": "2.8 µs"
+						},
+						"bare": {
+							"v": 187.5,
+							"text": "188 ns"
+						}
 					}
 				},
 				{
 					"id": "cookieRead",
 					"label": "document.cookie read",
 					"better": "lower",
-					"winner": "kaze",
+					"winner": "uv",
 					"values": {
-						"kaze": { "v": 1799.999998882413, "text": "1.8 µs" },
-						"scramjet1": { "v": 7599.999999627471, "text": "7.6 µs" },
-						"scramjet2": { "v": 3899.9999994412065, "text": "3.9 µs" },
-						"uv": { "v": 2200.0000001862645, "text": "2.2 µs" },
-						"bare": { "v": 1599.999999627471, "text": "1.6 µs" }
+						"kaze": {
+							"v": 7750,
+							"text": "7.8 µs"
+						},
+						"scramjet1": {
+							"v": 13549.999999988358,
+							"text": "13.5 µs"
+						},
+						"scramjet2": {
+							"v": 7199.999999837019,
+							"text": "7.2 µs"
+						},
+						"uv": {
+							"v": 3300.000000046566,
+							"text": "3.3 µs"
+						},
+						"bare": {
+							"v": 2399.9999999650754,
+							"text": "2.4 µs"
+						}
 					}
 				},
 				{
 					"id": "cookieWrite",
 					"label": "document.cookie write",
 					"better": "lower",
-					"winner": "kaze",
+					"winner": "scramjet2",
 					"values": {
-						"kaze": { "v": 6300.000000745058, "text": "6.3 µs" },
-						"scramjet1": { "v": 8299.999999813735, "text": "8.3 µs" },
-						"scramjet2": { "v": 9200.000000186265, "text": "9.2 µs" },
-						"uv": { "v": 9700.000000186265, "text": "9.7 µs" },
-						"bare": { "v": 1200.0000001862645, "text": "1.2 µs" }
+						"kaze": {
+							"v": 15400.00000008149,
+							"text": "15.4 µs"
+						},
+						"scramjet1": {
+							"v": 18599.99999991851,
+							"text": "18.6 µs"
+						},
+						"scramjet2": {
+							"v": 14850.000000093132,
+							"text": "14.9 µs"
+						},
+						"uv": {
+							"v": 17250,
+							"text": "17.3 µs"
+						},
+						"bare": {
+							"v": 2149.9999999650754,
+							"text": "2.1 µs"
+						}
 					}
 				},
 				{
@@ -494,11 +673,26 @@
 					"better": "lower",
 					"winner": "kaze",
 					"values": {
-						"kaze": { "v": 1509.999999962747, "text": "1.5 µs" },
-						"scramjet1": { "v": 5020.000000018626, "text": "5.0 µs" },
-						"scramjet2": { "v": 13519.999999925494, "text": "13.5 µs" },
-						"uv": { "v": 1839.9999999441206, "text": "1.8 µs" },
-						"bare": { "v": 160.00000005587935, "text": "160 ns" }
+						"kaze": {
+							"v": 2345.000000001164,
+							"text": "2.3 µs"
+						},
+						"scramjet1": {
+							"v": 9925,
+							"text": "9.9 µs"
+						},
+						"scramjet2": {
+							"v": 22654.999999993015,
+							"text": "22.7 µs"
+						},
+						"uv": {
+							"v": 3095.000000006985,
+							"text": "3.1 µs"
+						},
+						"bare": {
+							"v": 250,
+							"text": "250 ns"
+						}
 					}
 				},
 				{
@@ -507,11 +701,26 @@
 					"better": "lower",
 					"winner": "kaze",
 					"values": {
-						"kaze": { "v": 559.9999999627471, "text": "560 ns" },
-						"scramjet1": { "v": 1760.0000000558794, "text": "1.8 µs" },
-						"scramjet2": { "v": 1940.000000037253, "text": "1.9 µs" },
-						"uv": { "v": 1429.9999999813735, "text": "1.4 µs" },
-						"bare": { "v": 90.0000000372529, "text": "90 ns" }
+						"kaze": {
+							"v": 995.0000000011642,
+							"text": "995 ns"
+						},
+						"scramjet1": {
+							"v": 3100,
+							"text": "3.1 µs"
+						},
+						"scramjet2": {
+							"v": 3040.0000000023283,
+							"text": "3.0 µs"
+						},
+						"uv": {
+							"v": 2139.999999990687,
+							"text": "2.1 µs"
+						},
+						"bare": {
+							"v": 194.9999999953434,
+							"text": "195 ns"
+						}
 					}
 				},
 				{
@@ -520,11 +729,26 @@
 					"better": "lower",
 					"winner": "kaze",
 					"values": {
-						"kaze": { "v": 168999.99999441206, "text": "169.0 µs" },
-						"scramjet1": { "v": 360500.00000279397, "text": "360.5 µs" },
-						"scramjet2": { "v": 820000, "text": "820.0 µs" },
-						"uv": { "v": 195500.00000279397, "text": "195.5 µs" },
-						"bare": { "v": 53999.99999906868, "text": "54.0 µs" }
+						"kaze": {
+							"v": 251000.0000000582,
+							"text": "251.0 µs"
+						},
+						"scramjet1": {
+							"v": 600249.9999999418,
+							"text": "600.2 µs"
+						},
+						"scramjet2": {
+							"v": 1310249.9999996508,
+							"text": "1.31 ms"
+						},
+						"uv": {
+							"v": 326250,
+							"text": "326.3 µs"
+						},
+						"bare": {
+							"v": 77999.99999959255,
+							"text": "78.0 µs"
+						}
 					}
 				},
 				{
@@ -533,11 +757,26 @@
 					"better": "lower",
 					"winner": "kaze",
 					"values": {
-						"kaze": { "v": 35000, "text": "35.0 µs" },
-						"scramjet1": { "v": 69500.00000186265, "text": "69.5 µs" },
-						"scramjet2": { "v": 89499.99999720603, "text": "89.5 µs" },
-						"uv": { "v": 110500.00000279397, "text": "110.5 µs" },
-						"bare": { "v": 3999.9999990686774, "text": "4.0 µs" }
+						"kaze": {
+							"v": 58250.000000116415,
+							"text": "58.3 µs"
+						},
+						"scramjet1": {
+							"v": 111749.99999959255,
+							"text": "111.7 µs"
+						},
+						"scramjet2": {
+							"v": 171749.99999988358,
+							"text": "171.7 µs"
+						},
+						"uv": {
+							"v": 192500,
+							"text": "192.5 µs"
+						},
+						"bare": {
+							"v": 5000,
+							"text": "5.0 µs"
+						}
 					}
 				},
 				{
@@ -546,10 +785,22 @@
 					"better": "lower",
 					"winner": "kaze",
 					"values": {
-						"kaze": { "v": 99.99999962747097, "text": "100 ns" },
-						"scramjet1": { "v": 406500, "text": "406.5 µs" },
-						"scramjet2": { "v": 484399.9999994412, "text": "484.4 µs" },
-						"uv": { "v": 1399.9999994412065, "text": "1.4 µs" },
+						"kaze": {
+							"v": 99.99999997671694,
+							"text": "100 ns"
+						},
+						"scramjet1": {
+							"v": 1171749.9999999418,
+							"text": "1.17 ms"
+						},
+						"scramjet2": {
+							"v": 1280500,
+							"text": "1.28 ms"
+						},
+						"uv": {
+							"v": 2349.999999976717,
+							"text": "2.3 µs"
+						},
 						"bare": null
 					}
 				},
@@ -559,11 +810,26 @@
 					"better": "lower",
 					"winner": "kaze",
 					"values": {
-						"kaze": { "v": 800.0000007450581, "text": "800 ns" },
-						"scramjet1": { "v": 433200.0000011176, "text": "433.2 µs" },
-						"scramjet2": { "v": 540200.0000011176, "text": "540.2 µs" },
-						"uv": { "v": 1400.000000372529, "text": "1.4 µs" },
-						"bare": { "v": 199.99999925494194, "text": "200 ns" }
+						"kaze": {
+							"v": 900.0000000232831,
+							"text": "900 ns"
+						},
+						"scramjet1": {
+							"v": 1227000,
+							"text": "1.23 ms"
+						},
+						"scramjet2": {
+							"v": 1318999.9999997672,
+							"text": "1.32 ms"
+						},
+						"uv": {
+							"v": 2800.000000046566,
+							"text": "2.8 µs"
+						},
+						"bare": {
+							"v": 199.99999995343387,
+							"text": "200 ns"
+						}
 					}
 				},
 				{
@@ -572,11 +838,26 @@
 					"better": "lower",
 					"winner": "kaze",
 					"values": {
-						"kaze": { "v": 3519.999999925494, "text": "3.5 µs" },
-						"scramjet1": { "v": 14180.000000074506, "text": "14.2 µs" },
-						"scramjet2": { "v": 15800, "text": "15.8 µs" },
-						"uv": { "v": 8459.999999962747, "text": "8.5 µs" },
-						"bare": { "v": 2780.000000074506, "text": "2.8 µs" }
+						"kaze": {
+							"v": 11529.999999993015,
+							"text": "11.5 µs"
+						},
+						"scramjet1": {
+							"v": 24409.99999998603,
+							"text": "24.4 µs"
+						},
+						"scramjet2": {
+							"v": 24520.000000018626,
+							"text": "24.5 µs"
+						},
+						"uv": {
+							"v": 22340.00000001397,
+							"text": "22.3 µs"
+						},
+						"bare": {
+							"v": 7100,
+							"text": "7.1 µs"
+						}
 					}
 				},
 				{
@@ -585,11 +866,26 @@
 					"better": "lower",
 					"winner": "uv",
 					"values": {
-						"kaze": { "v": 31000.000002483528, "text": "31.0 µs" },
-						"scramjet1": { "v": 604000.0000006208, "text": "604.0 µs" },
-						"scramjet2": { "v": 90666.66666728754, "text": "90.7 µs" },
-						"uv": { "v": 25666.66666418314, "text": "25.7 µs" },
-						"bare": { "v": 22000.000001862645, "text": "22.0 µs" }
+						"kaze": {
+							"v": 65999.99999996119,
+							"text": "66.0 µs"
+						},
+						"scramjet1": {
+							"v": 1678999.9999998447,
+							"text": "1.68 ms"
+						},
+						"scramjet2": {
+							"v": 85000,
+							"text": "85.0 µs"
+						},
+						"uv": {
+							"v": 54666.66666674428,
+							"text": "54.7 µs"
+						},
+						"bare": {
+							"v": 41333.33333341094,
+							"text": "41.3 µs"
+						}
 					}
 				},
 				{
@@ -598,11 +894,26 @@
 					"better": "lower",
 					"winner": "kaze",
 					"values": {
-						"kaze": { "v": 3000.0000012417636, "text": "3.0 µs" },
-						"scramjet1": { "v": 8000.000001241763, "text": "8.0 µs" },
-						"scramjet2": { "v": 18666.666668529313, "text": "18.7 µs" },
-						"uv": { "v": 3666.6666685293117, "text": "3.7 µs" },
-						"bare": { "v": 333.33333519597846, "text": "333 ns" }
+						"kaze": {
+							"v": 5166.666666821888,
+							"text": "5.2 µs"
+						},
+						"scramjet1": {
+							"v": 11333.333333410943,
+							"text": "11.3 µs"
+						},
+						"scramjet2": {
+							"v": 23000.00000007761,
+							"text": "23.0 µs"
+						},
+						"uv": {
+							"v": 6166.6666669771075,
+							"text": "6.2 µs"
+						},
+						"bare": {
+							"v": 999.9999999611948,
+							"text": "1000 ns"
+						}
 					}
 				}
 			]
@@ -610,9 +921,9 @@
 		{
 			"name": "Memory & size",
 			"scores": {
-				"kaze": 47.52801235100034,
-				"scramjet1": 68.85405101995022,
-				"scramjet2": 40.36083074278831,
+				"kaze": 75.29989828208979,
+				"scramjet1": 92.28341705636844,
+				"scramjet2": 57.75535248418361,
 				"uv": 100
 			},
 			"metrics": [
@@ -622,11 +933,26 @@
 					"better": "lower",
 					"winner": "uv",
 					"values": {
-						"kaze": { "v": 4.164997100830078, "text": "4.2 MB" },
-						"scramjet1": { "v": 2.5173187255859375, "text": "2.5 MB" },
-						"scramjet2": { "v": 6.234718322753906, "text": "6.2 MB" },
-						"uv": { "v": 2.4290084838867188, "text": "2.4 MB" },
-						"bare": { "v": 0.6613121032714844, "text": "0.7 MB" }
+						"kaze": {
+							"v": 4.164363861083984,
+							"text": "4.2 MB"
+						},
+						"scramjet1": {
+							"v": 2.5273475646972656,
+							"text": "2.5 MB"
+						},
+						"scramjet2": {
+							"v": 6.228797912597656,
+							"text": "6.2 MB"
+						},
+						"uv": {
+							"v": 2.4416465759277344,
+							"text": "2.4 MB"
+						},
+						"bare": {
+							"v": 0.670074462890625,
+							"text": "0.7 MB"
+						}
 					}
 				},
 				{
@@ -635,10 +961,22 @@
 					"better": "lower",
 					"winner": "uv",
 					"values": {
-						"kaze": { "v": 326.400390625, "text": "326 KB" },
-						"scramjet1": { "v": 257.31640625, "text": "257 KB" },
-						"scramjet2": { "v": 302.3623046875, "text": "302 KB" },
-						"uv": { "v": 126.42578125, "text": "126 KB" },
+						"kaze": {
+							"v": 1006.974609375,
+							"text": "1007 KB"
+						},
+						"scramjet1": {
+							"v": 1104.6982421875,
+							"text": "1.08 MB"
+						},
+						"scramjet2": {
+							"v": 1144.3720703125,
+							"text": "1.12 MB"
+						},
+						"uv": {
+							"v": 973.8076171875,
+							"text": "974 KB"
+						},
 						"bare": null
 					}
 				}

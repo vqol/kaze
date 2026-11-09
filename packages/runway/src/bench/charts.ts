@@ -356,16 +356,28 @@ ${blocks}
 </body></html>`;
 }
 
+// live sites when the run had them (not with --no-live), else the local pages
+function pageLoadTests(): [string, string][] {
+	const live: [string, string][] = [
+		["load-google", "Google"],
+		["load-wikipedia", "Wikipedia"],
+		["load-github", "GitHub"],
+		["load-heavy-dom", "Heavy page (local test site)"],
+	];
+	if (live.every(([id]) => metrics.some((m) => m.id === id))) return live;
+	return [
+		["load-heavy-dom", "Heavy page, cold load (local test site)"],
+		["load-heavy-js", "JS-heavy app, cold load (local test site)"],
+		["fcp-heavy-dom", "Heavy page, first paint"],
+		["warm-heavy-js", "JS-heavy app, warm reload"],
+	];
+}
+
 async function main() {
 	const pages: [string, string][] = [
 		[
 			"kaze-bench-1-page-loads",
-			plain("Page load", [
-				["load-google", "Google"],
-				["load-wikipedia", "Wikipedia"],
-				["load-github", "GitHub"],
-				["load-heavy-dom", "Heavy page (local test site)"],
-			]),
+			plain("Page load", pageLoadTests()),
 		],
 		[
 			"kaze-bench-2-network",

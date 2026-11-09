@@ -4,9 +4,9 @@ a web proxy that runs in ur browser. its a fork of [scramjet](https://github.com
 
 ## speed
 
-fastest in 34 of 39 tests vs scramjet and ultraviolet, including every page load test. 91 overall (uv 51, scramjet 2 47, scramjet 1.1 37).
+fastest in 23 of 30 tests vs scramjet and ultraviolet, including every page load test. 93 overall (uv 54, scramjet 1.1 39, scramjet 2 38).
 
-all tested on a local wisp server btw, so ur numbers will be diffrent on a real one.
+all tested on a local wisp server btw, so ur numbers will be diffrent on a real one. this run was on a 4 core cloud box with the local test pages only (no live sites), so its not directly comparable to older runs.
 
 ![page load](assets/benchmarks/kaze-bench-1-page-loads.png)
 
@@ -14,7 +14,7 @@ all tested on a local wisp server btw, so ur numbers will be diffrent on a real 
 
 ![runtime](assets/benchmarks/kaze-bench-3-runtime.png)
 
-still loses on download size (it ships a full js parser), memory, startup and `replaceState`. working on it.
+still loses on raw download speed and memory (uv), rewriting one huge 2.6 MB script (scramjet 1.1), `document.cookie` and `replaceState`. working on it.
 
 live results are at `/benchmarks/` on the site, it updates every time u run a benchmark.
 

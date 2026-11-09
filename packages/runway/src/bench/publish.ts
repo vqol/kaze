@@ -152,6 +152,7 @@ export function publish(
 	opts: { label?: string; reset?: boolean } = {}
 ) {
 	fs.mkdirSync(SITE_DATA, { recursive: true });
+	fs.mkdirSync(path.dirname(MERGED), { recursive: true });
 	const historyFile = path.join(SITE_DATA, "history.json");
 	if (opts.reset) {
 		fs.rmSync(MERGED, { force: true });
