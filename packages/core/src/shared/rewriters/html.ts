@@ -871,20 +871,27 @@ function traverseParsedHtml(node: any, context: KazeContext, meta: URLMeta) {
 			"language" in node.attribs
 		);
 		if (isScriptType(scriptBlockType)) {
-			let js = node.children[0].data;
+			const source: string = node.children[0].data;
 			const module = isModuleScriptType(scriptBlockType);
-			node.attribs["kaze-attr-script-source-src"] = bytesToBase64(
-				TextEncoder_encode(js)
-			);
 			const htmlcomment = /<!--[\s\S]*?-->/g;
-			js = js.replace(htmlcomment, "");
-			node.children[0].data = rewriteJs(
-				js,
+			const rewritten = rewriteJs(
+				source.replace(htmlcomment, ""),
 				"(inline script element)",
 				context,
 				meta,
 				module
 			);
+			node.children[0].data = rewritten;
+			// textContent / innerHTML / outerHTML read the original back from this
+			// attribute. When rewriting changed nothing the element's own text is
+			// the original, so don't ship every inline script twice (+33% base64).
+			if (rewritten === source) {
+				delete node.attribs["kaze-attr-script-source-src"];
+			} else {
+				node.attribs["kaze-attr-script-source-src"] = bytesToBase64(
+					TextEncoder_encode(source)
+				);
+			}
 		}
 	}
 
