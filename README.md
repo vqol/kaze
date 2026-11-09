@@ -1,4 +1,4 @@
-<h1 align="center">kaze</h1>
+<p align="center"><img src="assets/kaze.svg" alt="kaze" width="440" /></p>
 
 a web proxy that runs in ur browser. its a fork of [scramjet](https://github.com/MercuryWorkshop/scramjet) by mercury workshop, renamed and tuned to be stupid fast.
 
