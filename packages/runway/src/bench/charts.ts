@@ -387,6 +387,8 @@ async function main() {
 		],
 	];
 	const browser = await chromium.launch({
+		// a chromium playwright didn't download, e.g. a preinstalled one
+		executablePath: process.env.RUNWAY_CHROMIUM || undefined,
 		channel: process.env.RUNWAY_CHANNEL || undefined,
 	});
 	for (const [name, html] of pages) {

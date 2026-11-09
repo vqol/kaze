@@ -413,6 +413,8 @@ async function main() {
 		specs.map((s, i) => startProxyServer(s, port(i)))
 	);
 	const browser = await chromium.launch({
+		// a chromium playwright didn't download, e.g. a preinstalled one
+		executablePath: process.env.RUNWAY_CHROMIUM || undefined,
 		channel: process.env.RUNWAY_CHANNEL || undefined,
 		headless: process.env.HEADED !== "1",
 	});
