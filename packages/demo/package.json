@@ -17,8 +17,6 @@
 		"@kaze/core": "workspace:*",
 		"@mercuryworkshop/proxy-transports": "catalog:",
 		"@mercuryworkshop/libcurl-transport": "catalog:",
-		"@mercuryworkshop/epoxy-transport": "catalog:",
-		"dreamland": "^0.1.3",
-		"monaco-editor": "^0.54.0"
+		"@mercuryworkshop/epoxy-transport": "catalog:"
 	}
 }

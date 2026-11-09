@@ -1,17 +1,105 @@
 <!doctype html>
 <html lang="en">
 	<head>
-		<meta charset="UTF-8" />
-		<link rel="icon" type="image/svg+xml" href="%BASE_URL%icon.png" />
-		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-		<title>Kaze Demo</title>
-
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="color-scheme" content="dark" />
+		<title>kaze</title>
+		<link rel="icon" href="%BASE_URL%icon.png" />
+		<link
+			rel="preload"
+			href="%BASE_URL%kaze/kaze.wasm"
+			as="fetch"
+			type="application/wasm"
+			crossorigin="anonymous"
+		/>
 		<script src="%BASE_URL%kaze/kaze.js"></script>
 		<script src="%BASE_URL%controller/controller.api.js"></script>
 	</head>
+	<body>
+		<main id="home">
+			<h1>kaze</h1>
+			<form class="search" id="home-form" autocomplete="off">
+				<input
+					id="home-input"
+					type="text"
+					placeholder="search or enter a url"
+					aria-label="Search or enter a URL"
+					spellcheck="false"
+					autofocus
+				/>
+				<button type="submit" aria-label="Go">
+					<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+				</button>
+			</form>
+			<button id="readout" type="button" title="Change transport or wisp server"></button>
+		</main>
+		<footer id="foot">
+			<a href="https://github.com/vqol/kaze">source</a>
+			<span id="version"></span>
+		</footer>
 
-	<body class="light-mode">
-		<div id="app"></div>
-		<script type="module" src="/src/index.tsx"></script>
+		<header id="bar">
+			<button id="mark" type="button" title="Home">kaze</button>
+			<nav>
+				<button id="back" type="button" aria-label="Back">
+					<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M15 6l-6 6 6 6" /></svg>
+				</button>
+				<button id="forward" type="button" aria-label="Forward">
+					<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
+				</button>
+				<button id="reload" type="button" aria-label="Reload">
+					<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7" /></svg>
+				</button>
+			</nav>
+			<form class="search" id="bar-form" autocomplete="off">
+				<input id="address" type="text" spellcheck="false" aria-label="Address" />
+			</form>
+			<button id="wire-toggle" type="button" aria-pressed="false" title="Every request this page makes, and what kaze changed">
+				wire <span id="wire-count">0</span>
+			</button>
+			<button id="settings-toggle" type="button" aria-label="Settings">
+				<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h2M10 17h10" /><circle cx="16" cy="7" r="2" /><circle cx="8" cy="17" r="2" /></svg>
+			</button>
+		</header>
+		<div id="progress"></div>
+
+		<iframe id="frame" title="proxied page"></iframe>
+
+		<aside id="wire" aria-label="Requests">
+			<div class="wire-head">
+				<input id="wire-filter" type="text" placeholder="filter" aria-label="Filter requests" spellcheck="false" />
+				<button id="wire-clear" type="button">clear</button>
+			</div>
+			<div id="wire-list"></div>
+			<div id="wire-detail"></div>
+		</aside>
+
+		<div id="settings" hidden>
+			<form id="settings-form" autocomplete="off">
+				<label class="field">
+					<span>wisp server</span>
+					<input name="wisp" type="text" spellcheck="false" />
+				</label>
+				<fieldset>
+					<legend>transport</legend>
+					<label><input type="radio" name="transport" value="libcurl" /><span>libcurl</span></label>
+					<label><input type="radio" name="transport" value="epoxy" /><span>epoxy</span></label>
+				</fieldset>
+				<fieldset>
+					<legend>search with</legend>
+					<label><input type="radio" name="search" value="duckduckgo" /><span>duckduckgo</span></label>
+					<label><input type="radio" name="search" value="google" /><span>google</span></label>
+					<label><input type="radio" name="search" value="brave" /><span>brave</span></label>
+				</fieldset>
+				<p id="settings-error" role="alert"></p>
+				<div class="actions">
+					<button type="button" id="settings-cancel">cancel</button>
+					<button type="submit" class="primary">save and restart</button>
+				</div>
+			</form>
+		</div>
+
+		<script type="module" src="/src/main.ts"></script>
 	</body>
 </html>

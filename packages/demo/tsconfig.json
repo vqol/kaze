@@ -4,7 +4,7 @@
 		"useDefineForClassFields": true,
 		"module": "ESNext",
 		"lib": ["ES2022", "DOM", "DOM.Iterable"],
-		"types": [],
+		"types": ["vite/client"],
 		"skipLibCheck": true,
 		/* Bundler mode */
 		"moduleResolution": "bundler",
@@ -18,9 +18,7 @@
 		"noUnusedParameters": false,
 		"erasableSyntaxOnly": false,
 		"noFallthroughCasesInSwitch": true,
-		"noUncheckedSideEffectImports": true,
-		"jsx": "react-jsx",
-		"jsxImportSource": "dreamland"
+		"noUncheckedSideEffectImports": true
 	},
 	"include": ["src"]
 }

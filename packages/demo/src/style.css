@@ -1,0 +1,639 @@
+:root {
+	--bg: #000;
+	--fg: #f2f2f2;
+	--dim: #6b6b6b;
+	--faint: #3a3a3a;
+	--line: #222;
+	--raise: #0b0b0b;
+	/* kaze's colour, same as the benchmark charts. means "kaze did this" */
+	--kaze: #3987e5;
+	--error: #ff6b5e;
+	--sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+	--mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+	--bar: 52px;
+	--wire: 440px;
+	--ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+* {
+	box-sizing: border-box;
+}
+html,
+body {
+	margin: 0;
+	height: 100%;
+	background: var(--bg);
+	color: var(--fg);
+	font: 14px/1.4 var(--sans);
+	-webkit-font-smoothing: antialiased;
+	overflow: hidden;
+}
+button,
+input {
+	font: inherit;
+	color: inherit;
+}
+button {
+	background: none;
+	border: 0;
+	padding: 0;
+	cursor: pointer;
+}
+svg {
+	fill: none;
+	stroke: currentColor;
+	stroke-width: 2;
+	stroke-linecap: round;
+	stroke-linejoin: round;
+}
+a {
+	color: inherit;
+}
+:focus-visible {
+	outline: 1px solid var(--fg);
+	outline-offset: 2px;
+}
+
+/* ---------- home ---------- */
+
+#home {
+	position: fixed;
+	inset: 0;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 34px;
+	padding: 0 16px;
+	transition:
+		opacity 0.3s ease,
+		transform 0.3s var(--ease);
+}
+body.browsing #home,
+body.browsing #foot {
+	opacity: 0;
+	transform: scale(0.985);
+	pointer-events: none;
+}
+h1 {
+	margin: 0;
+	font-size: clamp(56px, 11vw, 112px);
+	font-weight: 200;
+	letter-spacing: 0.32em;
+	margin-right: -0.32em; /* recenter the tracked word */
+	line-height: 1;
+	user-select: none;
+}
+
+form.search {
+	position: relative;
+	width: min(560px, 100%);
+}
+form.search input {
+	width: 100%;
+	height: 52px;
+	padding: 0 56px 0 22px;
+	background: transparent;
+	border: 1px solid var(--line);
+	border-radius: 999px;
+	font-size: 15px;
+	outline: none;
+	transition:
+		border-color 0.2s ease,
+		background 0.2s ease;
+}
+form.search input::placeholder {
+	color: var(--dim);
+}
+form.search input:hover {
+	border-color: var(--faint);
+}
+form.search input:focus {
+	border-color: var(--fg);
+	background: var(--raise);
+}
+form.search button {
+	position: absolute;
+	right: 6px;
+	top: 50%;
+	transform: translateY(-50%);
+	width: 40px;
+	height: 40px;
+	border-radius: 50%;
+	background: var(--fg);
+	color: var(--bg);
+	display: grid;
+	place-items: center;
+}
+form.search button svg {
+	stroke-width: 2.4;
+}
+
+#readout {
+	font: 12px var(--mono);
+	color: var(--dim);
+	padding: 4px 8px;
+	border-radius: 4px;
+	transition: color 0.2s ease;
+}
+#readout:hover {
+	color: var(--fg);
+}
+#readout.failed {
+	color: var(--error);
+}
+
+#foot {
+	position: fixed;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	display: flex;
+	justify-content: space-between;
+	padding: 16px 20px calc(16px + env(safe-area-inset-bottom, 0px));
+	font: 12px var(--mono);
+	color: var(--dim);
+	transition: opacity 0.3s ease;
+}
+#foot a {
+	text-decoration: none;
+}
+#foot a:hover {
+	color: var(--fg);
+}
+
+/* ---------- bar ---------- */
+
+#bar {
+	position: fixed;
+	top: 0;
+	left: 0;
+	right: 0;
+	height: var(--bar);
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 0 10px 0 6px;
+	background: var(--bg);
+	border-bottom: 1px solid var(--line);
+	transform: translateY(-100%);
+	transition: transform 0.3s var(--ease);
+	z-index: 2;
+}
+body.browsing #bar {
+	transform: none;
+}
+#mark {
+	font-size: 15px;
+	font-weight: 300;
+	letter-spacing: 0.32em;
+	padding: 8px 4px 8px 12px;
+	user-select: none;
+}
+#bar nav {
+	display: flex;
+}
+#bar nav button,
+#settings-toggle {
+	width: 34px;
+	height: 34px;
+	border-radius: 50%;
+	display: grid;
+	place-items: center;
+	color: var(--dim);
+	transition:
+		color 0.15s ease,
+		background 0.15s ease;
+}
+#bar nav button:hover,
+#settings-toggle:hover {
+	color: var(--fg);
+	background: #151515;
+}
+#bar form.search {
+	flex: 1;
+	width: auto;
+	min-width: 0;
+}
+#bar form.search input {
+	height: 36px;
+	padding: 0 16px;
+	font-size: 13.5px;
+}
+#wire-toggle {
+	height: 36px;
+	padding: 0 14px;
+	border: 1px solid var(--line);
+	border-radius: 999px;
+	font: 12px var(--mono);
+	color: var(--dim);
+	white-space: nowrap;
+	transition:
+		color 0.15s ease,
+		border-color 0.15s ease;
+}
+#wire-toggle:hover {
+	color: var(--fg);
+	border-color: var(--faint);
+}
+#wire-toggle[aria-pressed="true"] {
+	color: var(--fg);
+	border-color: var(--fg);
+}
+#wire-count {
+	color: var(--kaze);
+	margin-left: 4px;
+}
+
+#progress {
+	position: fixed;
+	top: calc(var(--bar) - 1px);
+	left: 0;
+	height: 1px;
+	width: 0;
+	background: var(--fg);
+	opacity: 0;
+	z-index: 3;
+	transition:
+		width 2.5s cubic-bezier(0.1, 0.7, 0.2, 1),
+		opacity 0.3s ease;
+}
+#progress.on {
+	width: 85%;
+	opacity: 1;
+}
+#progress.done {
+	width: 100%;
+	opacity: 0;
+	transition:
+		width 0.2s ease,
+		opacity 0.4s ease 0.2s;
+}
+
+/* ---------- frame ---------- */
+
+#frame {
+	position: fixed;
+	top: var(--bar);
+	left: 0;
+	right: 0;
+	bottom: 0;
+	width: 100%;
+	height: calc(100% - var(--bar));
+	border: 0;
+	background: #fff;
+	opacity: 0;
+	pointer-events: none;
+	transition:
+		opacity 0.3s ease,
+		right 0.3s var(--ease);
+}
+body.browsing #frame {
+	opacity: 1;
+	pointer-events: auto;
+}
+body.wire-open #frame {
+	right: var(--wire);
+	width: calc(100% - var(--wire));
+}
+
+/* ---------- wire ---------- */
+
+#wire {
+	position: fixed;
+	top: var(--bar);
+	right: 0;
+	bottom: 0;
+	width: var(--wire);
+	display: flex;
+	flex-direction: column;
+	background: var(--bg);
+	border-left: 1px solid var(--line);
+	font: 12px/1.45 var(--mono);
+	transform: translateX(100%);
+	transition: transform 0.3s var(--ease);
+}
+body.browsing.wire-open #wire {
+	transform: none;
+}
+.wire-head {
+	display: flex;
+	gap: 8px;
+	padding: 10px;
+	border-bottom: 1px solid var(--line);
+}
+#wire-filter {
+	flex: 1;
+	min-width: 0;
+	height: 30px;
+	padding: 0 12px;
+	background: transparent;
+	border: 1px solid var(--line);
+	border-radius: 999px;
+	outline: none;
+	font: inherit;
+}
+#wire-filter:focus {
+	border-color: var(--fg);
+}
+#wire-filter::placeholder {
+	color: var(--dim);
+}
+#wire-clear {
+	padding: 0 10px;
+	color: var(--dim);
+}
+#wire-clear:hover {
+	color: var(--fg);
+}
+
+#wire-list {
+	flex: 1;
+	overflow-y: auto;
+	padding: 4px 0;
+}
+body.wire-detail #wire-list,
+body.wire-detail .wire-head {
+	display: none;
+}
+.row {
+	display: grid;
+	grid-template-columns: 30px 34px 1fr auto;
+	gap: 10px;
+	width: 100%;
+	padding: 3px 12px;
+	text-align: left;
+	font: inherit;
+	color: var(--dim);
+}
+.row:hover {
+	background: #0e0e0e;
+	color: var(--fg);
+}
+.row .where {
+	overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+}
+.row .host {
+	color: var(--fg);
+}
+.row b {
+	font-weight: 400;
+	color: var(--fg);
+}
+.ms {
+	text-align: right;
+	font-variant-numeric: tabular-nums;
+}
+.ms.cached {
+	color: var(--kaze);
+}
+.status {
+	font-variant-numeric: tabular-nums;
+	color: var(--fg);
+}
+.status.redirect {
+	color: var(--dim);
+}
+.status.error {
+	color: var(--error);
+}
+.empty {
+	margin: 0;
+	padding: 24px 12px;
+	color: var(--dim);
+	font-family: var(--sans);
+}
+
+#wire-detail {
+	flex: 1;
+	overflow-y: auto;
+	display: none;
+	padding: 0 14px 24px;
+}
+body.wire-detail #wire-detail {
+	display: block;
+}
+#wire-detail header {
+	position: sticky;
+	top: 0;
+	display: flex;
+	align-items: baseline;
+	gap: 12px;
+	padding: 12px 0 10px;
+	background: var(--bg);
+	border-bottom: 1px solid var(--line);
+}
+#wire-detail .back {
+	color: var(--dim);
+	font-size: 14px;
+}
+#wire-detail .back:hover {
+	color: var(--fg);
+}
+.dim {
+	color: var(--dim);
+}
+.url {
+	margin: 12px 0 6px;
+	word-break: break-all;
+	color: var(--fg);
+}
+.summary {
+	margin: 0 0 4px;
+	color: var(--dim);
+	font-family: var(--sans);
+	font-size: 12.5px;
+}
+.summary.changed {
+	color: var(--kaze);
+}
+#wire-detail section {
+	margin-top: 20px;
+}
+#wire-detail h3 {
+	margin: 0 0 6px;
+	font: 400 11px var(--mono);
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	color: var(--dim);
+}
+#wire-detail dl {
+	display: grid;
+	grid-template-columns: fit-content(48%) 1fr;
+	gap: 3px 12px;
+	margin: 10px 0 0;
+}
+#wire-detail dt,
+#wire-detail dd {
+	margin: 0;
+	word-break: break-all;
+}
+#wire-detail dt {
+	color: var(--dim);
+	position: relative;
+	padding-left: 12px;
+}
+.sign {
+	position: absolute;
+	left: 0;
+}
+#wire-detail dt.added,
+#wire-detail dt.changed,
+#wire-detail dd.added,
+#wire-detail dd.changed,
+#wire-detail dt.removed {
+	color: var(--kaze);
+}
+#wire-detail dd.removed {
+	color: var(--faint);
+	text-decoration: line-through;
+}
+#wire-detail dd s {
+	color: var(--faint);
+}
+
+/* ---------- settings ---------- */
+
+#settings {
+	position: fixed;
+	inset: 0;
+	z-index: 10;
+	display: grid;
+	place-items: center;
+	padding: 16px;
+	background: rgb(0 0 0 / 0.6);
+}
+#settings[hidden] {
+	display: none;
+}
+#settings-form {
+	width: min(400px, 100%);
+	padding: 22px;
+	background: var(--raise);
+	border: 1px solid var(--line);
+	border-radius: 14px;
+	display: flex;
+	flex-direction: column;
+	gap: 20px;
+}
+.field {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+.field span,
+legend {
+	font: 11px var(--mono);
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	color: var(--dim);
+}
+.field input {
+	height: 38px;
+	padding: 0 14px;
+	background: var(--bg);
+	border: 1px solid var(--line);
+	border-radius: 8px;
+	font: 13px var(--mono);
+	outline: none;
+}
+.field input:focus {
+	border-color: var(--fg);
+}
+fieldset {
+	border: 0;
+	margin: 0;
+	padding: 0;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+}
+legend {
+	padding: 0;
+	margin-bottom: 8px;
+}
+fieldset label input {
+	position: absolute;
+	opacity: 0;
+	pointer-events: none;
+}
+fieldset label span {
+	display: block;
+	padding: 6px 14px;
+	border: 1px solid var(--line);
+	border-radius: 999px;
+	color: var(--dim);
+	cursor: pointer;
+	font-size: 13px;
+}
+fieldset label span:hover {
+	color: var(--fg);
+}
+fieldset label input:checked + span {
+	color: var(--bg);
+	background: var(--fg);
+	border-color: var(--fg);
+}
+fieldset label input:focus-visible + span {
+	outline: 1px solid var(--fg);
+	outline-offset: 2px;
+}
+#settings-error {
+	margin: -8px 0 0;
+	color: var(--error);
+	font-size: 12.5px;
+}
+#settings-error:empty {
+	display: none;
+}
+.actions {
+	display: flex;
+	justify-content: flex-end;
+	gap: 8px;
+}
+.actions button {
+	height: 36px;
+	padding: 0 16px;
+	border-radius: 999px;
+	color: var(--dim);
+}
+.actions button:hover {
+	color: var(--fg);
+}
+.actions .primary {
+	background: var(--fg);
+	color: var(--bg);
+}
+.actions .primary:hover {
+	color: var(--bg);
+	opacity: 0.88;
+}
+
+/* ---------- small screens ---------- */
+
+@media (max-width: 720px) {
+	:root {
+		--wire: 100%;
+	}
+	#bar {
+		gap: 4px;
+		padding-right: 6px;
+	}
+	#mark {
+		padding-left: 8px;
+		letter-spacing: 0.2em;
+	}
+	#forward,
+	#reload {
+		display: none !important;
+	}
+	#wire-toggle {
+		padding: 0 10px;
+	}
+	body.wire-open #frame {
+		right: 0;
+		width: 100%;
+	}
+}

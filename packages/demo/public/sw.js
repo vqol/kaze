@@ -5,6 +5,9 @@ importScripts("controller/controller.sw.js");
 const base = new URL("./", self.location.href).pathname;
 $kazeController.addPrefixBase(base + "~/kz/");
 
+addEventListener("install", () => self.skipWaiting());
+addEventListener("activate", (e) => e.waitUntil(clients.claim()));
+
 addEventListener("fetch", (e) => {
 	if ($kazeController.shouldRoute(e)) {
 		e.respondWith($kazeController.route(e));
