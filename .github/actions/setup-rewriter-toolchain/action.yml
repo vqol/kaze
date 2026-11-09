@@ -38,7 +38,17 @@ runs:
           cargo install wasm-bindgen-cli --version ${{ inputs.wasm-bindgen-version }}
         fi
 
+    # the release download intermittently 504s, which used to fail the whole
+    # build (and skip every job after it), so give it a second go
     - name: Setup Binaryen
+      id: binaryen
+      continue-on-error: true
+      uses: Aandreba/setup-binaryen@v1.0.0
+      with:
+        token: ${{ inputs.github-token }}
+
+    - name: Setup Binaryen (retry)
+      if: steps.binaryen.outcome == 'failure'
       uses: Aandreba/setup-binaryen@v1.0.0
       with:
         token: ${{ inputs.github-token }}

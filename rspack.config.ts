@@ -174,8 +174,13 @@ const createTypeChecker = (
  * The checker plugin doesn't rewrite TS path aliases in emitted declarations,
  * so chain `tsc-alias` after it. This runs once the checker reports issues
  * (i.e. after each declaration emit), with a guard for watch mode reruns.
+ *
+ * The compile isn't reported done until the rewrite has finished: other
+ * configs (controller, utils, bootstrap) type-check against these
+ * declarations, and reading them half-rewritten gives bogus errors.
  */
 class TscAliasRewritePlugin {
+	pending: Promise<void> = Promise.resolve();
 	busy = false;
 	rerun = false;
 	configFile: string;
@@ -189,6 +194,14 @@ class TscAliasRewritePlugin {
 			this.schedule();
 			return [];
 		});
+		compiler.hooks.done.tapPromise("TscAliasRewritePlugin", () =>
+			this.settled()
+		);
+	}
+
+	private async settled() {
+		// a rerun may be queued while we wait, so loop until idle
+		while (this.busy) await this.pending;
 	}
 
 	private schedule() {
@@ -197,7 +210,7 @@ class TscAliasRewritePlugin {
 			return;
 		}
 		this.busy = true;
-		replaceTscAliasPaths({ configFile: this.configFile })
+		this.pending = replaceTscAliasPaths({ configFile: this.configFile })
 			.catch((e) => console.error(`TscAliasRewritePlugin: ${e.message}`))
 			.finally(() => {
 				this.busy = false;
@@ -482,7 +495,8 @@ const controllerVersionDefines = new rspack.DefinePlugin({
 
 const controllerConfig = createGenericConfig(controllermeta, {
 	name: "kaze-controller",
-	dependencies: ["kaze-esmodule"],
+	// kaze-iife emits core's declarations, which the controller's checker reads
+	dependencies: ["kaze-iife", "kaze-esmodule"],
 	entry: {
 		api: join(controllerdir, "src/index.ts"),
 		inject: join(controllerdir, "src/inject.ts"),
