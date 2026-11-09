@@ -305,12 +305,22 @@ export class ProxyHttpCache extends Plugin {
 				},
 				response.url
 			);
-			void this.collect(key, forCache, response);
+			// the entry's id is known now, so this first response already fills
+			// the rewrite cache (body.ts) and the first reload hits it. If the
+			// entry never gets stored the id matches nothing: no false hits.
+			const id = this.newId();
+			(props.response as any).kzCacheId = id;
+			void this.collect(key, id, forCache, response);
 		});
+	}
+
+	private newId() {
+		return String(++this.nextId) + ":" + Date.now();
 	}
 
 	private async collect(
 		key: string,
+		id: string,
 		body: ReadableStream<Uint8Array>,
 		response: BareResponse
 	) {
@@ -339,7 +349,7 @@ export class ProxyHttpCache extends Plugin {
 		}
 		const entry: Entry = {
 			key,
-			id: String(++this.nextId) + ":" + Date.now(),
+			id,
 			status: response.status,
 			statusText: response.statusText,
 			headers: response.rawHeaders,
