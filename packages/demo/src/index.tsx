@@ -93,8 +93,15 @@ async function init() {
 		if (!readySw) {
 			throw new Error("No service worker available for controller");
 		}
+		const base = import.meta.env.BASE_URL;
 		controller = new Controller({
 			serviceworker: readySw,
+			config: {
+				prefix: `${base}~/kz/`,
+				kazePath: `${base}kaze/kaze.js`,
+				injectPath: `${base}controller/controller.inject.js`,
+				wasmPath: `${base}kaze/kaze.wasm`,
+			},
 			transport: getTransport(),
 			kazeConfig: defaultConfigDev,
 		});

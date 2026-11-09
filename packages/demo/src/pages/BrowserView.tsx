@@ -160,7 +160,10 @@ const BrowserView: Component<
 		});
 		let catchEscapedLinks = new CatchEscapedLinksPlugin(
 			(url) =>
-				new URL(`/?goto=${encodeURIComponent(url.href)}`, location.origin)
+				new URL(
+					`${import.meta.env.BASE_URL}?goto=${encodeURIComponent(url.href)}`,
+					location.origin
+				)
 		);
 		browserState.frame = controller.createFrame(this.frameel, {
 			plugins: [cachePlugin, urlWatcher, catchEscapedLinks],
