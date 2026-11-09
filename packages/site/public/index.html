@@ -4,8 +4,11 @@
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<title>kaze</title>
-		<script src="/kaze/kaze.js"></script>
-		<script src="/controller/controller.api.js"></script>
+		<!-- defer: the page paints while these download. controller.api.js still
+		     finds kaze.js through document.scripts / document.currentScript to
+		     warm-start its fetch worker -->
+		<script src="/kaze/kaze.js" defer></script>
+		<script src="/controller/controller.api.js" defer></script>
 		<style>
 			:root {
 				--bg: #000;
@@ -333,7 +336,9 @@
 		</header>
 		<div id="progress"></div>
 
-		<script>
+		<!-- a module script runs after the deferred scripts above, in document
+		     order, so $kazeController exists by the time this starts -->
+		<script type="module">
 			const $ = (id) => document.getElementById(id);
 			const status = $("status");
 			// created from script: firefox restores a static iframe's old src on
