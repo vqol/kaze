@@ -9,3 +9,4 @@ packages/runway/coverage
 packages/site/server.log
 bench-results/
 packages/embed/assets
+packages/site/.compressed

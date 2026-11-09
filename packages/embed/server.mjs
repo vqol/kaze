@@ -6,8 +6,8 @@
 //   proxy.attach(server);      // the http.Server: handles wisp websockets
 import fs from "node:fs";
 import path from "node:path";
-import zlib from "node:zlib";
 import { fileURLToPath } from "node:url";
+import { createFileCache, negotiate } from "./precompress.mjs";
 
 const ASSET_DIR = path.join(
 	path.dirname(fileURLToPath(import.meta.url)),
@@ -34,27 +34,11 @@ export function kaze(options = {}) {
 	const swPath = options.swPath ?? "/kaze-sw.js";
 	const wispPath = options.wispPath ?? "/wisp/";
 	const sw = serviceWorkerSource(assetsPath);
-	const cache = new Map();
+	// brotli/gzip copies come from build.mjs (see precompress.mjs)
+	const load = createFileCache();
 
-	function load(file) {
-		let entry = cache.get(file);
-		if (entry) return entry;
-		const raw = fs.readFileSync(file);
-		const stat = fs.statSync(file);
-		entry = {
-			raw,
-			etag: `"${stat.size.toString(36)}-${Math.floor(stat.mtimeMs).toString(36)}"`,
-			br: zlib.brotliCompressSync(raw, {
-				params: { [zlib.constants.BROTLI_PARAM_QUALITY]: 9 },
-			}),
-			gzip: zlib.gzipSync(raw, { level: 9 }),
-		};
-		cache.set(file, entry);
-		return entry;
-	}
-
-	function serve(req, res, file) {
-		const entry = load(file);
+	async function serve(req, res, file, stat) {
+		const entry = await load(file, stat);
 		const headers = {
 			"Content-Type": TYPES[path.extname(file)] ?? "application/octet-stream",
 			"Cache-Control": "public, max-age=600, stale-while-revalidate=86400",
@@ -65,16 +49,7 @@ export function kaze(options = {}) {
 			res.writeHead(304, headers).end();
 			return;
 		}
-		const accept = String(req.headers["accept-encoding"] ?? "");
-		let body = entry.raw;
-		if (/\bbr\b/.test(accept)) {
-			body = entry.br;
-			headers["Content-Encoding"] = "br";
-		} else if (/\bgzip\b/.test(accept)) {
-			body = entry.gzip;
-			headers["Content-Encoding"] = "gzip";
-		}
-		headers["Content-Length"] = body.length;
+		const body = negotiate(req, entry, headers);
 		res.writeHead(200, headers);
 		res.end(req.method === "HEAD" ? undefined : body);
 	}
@@ -97,14 +72,17 @@ export function kaze(options = {}) {
 		if (!pathname.startsWith(assetsPath)) return pass();
 		const file = path.join(ASSET_DIR, pathname.slice(assetsPath.length));
 		if (!file.startsWith(ASSET_DIR + path.sep)) return pass();
-		let isFile = false;
-		try {
-			isFile = fs.statSync(file).isFile();
-		} catch {
+		fs.promises.stat(file).then(
+			(stat) => {
+				if (!stat.isFile()) return pass();
+				return serve(req, res, file, stat).catch((err) => {
+					if (next) return next(err);
+					res.writeHead(500, { "Content-Type": "text/plain" }).end();
+				});
+			},
 			// not one of ours
-		}
-		if (!isFile) return pass();
-		serve(req, res, file);
+			() => pass()
+		);
 	}
 
 	/** Handle wisp websockets on an http.Server. Other upgrades are left alone. */

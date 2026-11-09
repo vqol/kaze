@@ -3,6 +3,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { precompress } from "./precompress.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const out = path.join(here, "assets");
@@ -33,8 +34,11 @@ copy(path.join(libcurl, "index.js"), "libcurl/index.js");
 for (const f of ["kaze-embed.js", "scramjet-compat.js"])
 	copy(path.join(here, "src", f), f);
 
-const size = fs.readdirSync(out, { recursive: true }).reduce((sum, f) => {
-	const p = path.join(out, f);
-	return fs.statSync(p).isFile() ? sum + fs.statSync(p).size : sum;
-}, 0);
+const files = fs
+	.readdirSync(out, { recursive: true })
+	.map((f) => path.join(out, f))
+	.filter((p) => fs.statSync(p).isFile());
+const size = files.reduce((sum, p) => sum + fs.statSync(p).size, 0);
+// brotli 11 + gzip 9 copies, served by server.mjs instead of compressing per request
+await Promise.all(files.map((p) => precompress(p)));
 console.log(`assets ready: ${(size / 1048576).toFixed(1)} MB`);

@@ -14,6 +14,7 @@
 	"files": [
 		"assets",
 		"server.mjs",
+		"precompress.mjs",
 		"cli.mjs",
 		"README.md",
 		"MIGRATING.md"
