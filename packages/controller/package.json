@@ -13,7 +13,7 @@
 		"directory": "packages/controller"
 	},
 	"scripts": {
-		"build": "cd ../.. && rspack build --mode production --config-name kaze-esmodule --config-name kaze-controller",
+		"build": "cd ../.. && rspack build --mode production --config-name kaze-iife --config-name kaze-esmodule --config-name kaze-controller",
 		"prepack": "pnpm build"
 	},
 	"exports": {
