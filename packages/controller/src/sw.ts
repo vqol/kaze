@@ -12,6 +12,9 @@ const cookieResolvers: Record<string, (value: void) => void> = {};
 addEventListener("message", (e) => {
 	if (!e.data) return;
 	if (typeof e.data != "object") return;
+	// the controller page's keepalive (Controller.startKeepalive): receiving it
+	// is the point; it must not touch ports or tabs
+	if (e.data.$sw$keepalive) return;
 	if (e.data.$sw$setCookieDone && typeof e.data.$sw$setCookieDone == "object") {
 		const done = e.data.$sw$setCookieDone;
 

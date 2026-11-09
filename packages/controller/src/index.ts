@@ -115,6 +115,8 @@ type ControllerInit = {
 	rewriteWorkers?: number;
 	/** run requests in a worker when the transport is a WorkerTransport (default true) */
 	fetchWorker?: boolean;
+	/** ms between keepalive pings to the service worker (default 20000, false disables) */
+	serviceWorkerKeepalive?: number | false;
 };
 
 type FrameOptions = {
@@ -634,12 +636,18 @@ export class Controller {
 
 		// don't lose a debounced cookie write when the tab goes away
 		addEventListener("pagehide", () => {
+			this.stopKeepalive();
 			if (this.persistTimer !== null) {
 				clearTimeout(this.persistTimer);
 				this.persistTimer = null;
 				void this.persistCookies();
 			}
 		});
+		// back from the back/forward cache
+		addEventListener("pageshow", (e) => {
+			if (e.persisted) this.startKeepalive();
+		});
+		this.startKeepalive();
 
 		navigator.serviceWorker.addEventListener("message", (e) => {
 			if (
@@ -677,6 +685,35 @@ export class Controller {
 				this.setupMessagePort();
 			}
 		});
+	}
+
+	private keepaliveTimer: ReturnType<typeof setInterval> | null = null;
+	/**
+	 * Browsers stop a service worker after ~30s without events, and the next
+	 * proxied navigation then waits for it to start again and for this page
+	 * to hand it a new port (the revive broadcast). A message every 20s keeps
+	 * it running while this page is open. The worker ignores the message: it
+	 * doesn't touch the ports, so it can't trigger a revive by itself (if the
+	 * worker did die anyway, waking it runs the normal revive).
+	 */
+	private startKeepalive() {
+		const every = this.init.serviceWorkerKeepalive ?? 20000;
+		if (every === false || this.keepaliveTimer !== null) return;
+		this.keepaliveTimer = setInterval(() => {
+			try {
+				// not navigator.serviceWorker.controller: with kaze-embed that can
+				// be the host site's own worker
+				this.serviceWorkerController.postMessage({ $sw$keepalive: true });
+			} catch {
+				// worker gone: the revive logic handles it on the next request
+			}
+		}, every);
+	}
+
+	private stopKeepalive() {
+		if (this.keepaliveTimer === null) return;
+		clearInterval(this.keepaliveTimer);
+		this.keepaliveTimer = null;
 	}
 
 	private setupMessagePort() {
