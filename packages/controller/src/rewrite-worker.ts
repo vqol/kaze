@@ -5,6 +5,7 @@ import type {
 	RewriteJob,
 	RewriteResult,
 	RewriteWorkerMessage,
+	RewriteWorkerReply,
 } from "./rewrite-pool";
 
 declare const self: DedicatedWorkerGlobalScope;
@@ -62,6 +63,7 @@ self.onmessage = (e: MessageEvent<RewriteWorkerMessage>) => {
 			codecEncode: fn(msg.encode),
 			codecDecode: fn(msg.decode),
 		};
+		self.postMessage({ ready: true } satisfies RewriteWorkerReply);
 		return;
 	}
 	try {

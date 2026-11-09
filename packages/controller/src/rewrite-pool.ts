@@ -23,6 +23,9 @@ export type RewriteResult =
 	| { id: number; output: Uint8Array | string; failed?: undefined }
 	| { id: number; failed: true; input: Uint8Array | string };
 
+/** what a worker sends back: a result, or that it finished booting */
+export type RewriteWorkerReply = RewriteResult | { ready: true };
+
 export type RewriteWorkerMessage =
 	| {
 			type: "init";
@@ -39,30 +42,42 @@ type Pending = {
 	job: RewriteJob;
 	worker: PoolWorker;
 };
-type PoolWorker = { worker: Worker; busy: number };
+type PoolWorker = { worker: Worker; busy: number; ready: boolean };
 
+/**
+ * Workers start on demand, not with the controller: each one loads the
+ * rewriter and instantiates the wasm, which competed with startup for CPU
+ * whether or not a page ever had a script big enough to offload. Until a
+ * worker has booted, jobs run on the calling thread as they would without
+ * a pool; the pool grows (up to `size`) while every booted worker is busy.
+ */
 export class RewritePool implements RewriteOffload {
 	private workers: PoolWorker[] = [];
 	private pending = new Map<number, Pending>();
 	private nextId = 1;
+	private broken = false;
 
 	constructor(
-		size: number,
-		workerUrl: string,
-		init: Omit<Extract<RewriteWorkerMessage, { type: "init" }>, "type">
-	) {
-		for (let i = 0; i < size; i++) {
-			try {
-				const worker = new Worker(workerUrl, { name: "kaze-rewrite" });
-				const slot: PoolWorker = { worker, busy: 0 };
-				worker.postMessage({ type: "init", ...init });
-				worker.onmessage = (e: MessageEvent<RewriteResult>) =>
-					this.done(e.data);
-				worker.onerror = () => this.retire(slot);
-				this.workers.push(slot);
-			} catch {
-				break;
-			}
+		private size: number,
+		private workerUrl: string,
+		private init: Omit<Extract<RewriteWorkerMessage, { type: "init" }>, "type">
+	) {}
+
+	private spawn() {
+		if (this.broken || this.workers.length >= this.size) return;
+		try {
+			const worker = new Worker(this.workerUrl, { name: "kaze-rewrite" });
+			const slot: PoolWorker = { worker, busy: 0, ready: false };
+			worker.postMessage({ type: "init", ...this.init });
+			worker.onmessage = (e: MessageEvent<RewriteWorkerReply>) => {
+				if ("ready" in e.data) slot.ready = true;
+				else this.done(e.data);
+			};
+			worker.onerror = () => this.retire(slot);
+			this.workers.push(slot);
+		} catch {
+			// no workers here (CSP etc.): everything stays on this thread
+			this.broken = true;
 		}
 	}
 
@@ -79,6 +94,8 @@ export class RewritePool implements RewriteOffload {
 
 	/** a dead worker (blocked script, CSP): its jobs go back to the main thread */
 	private retire(slot: PoolWorker) {
+		// one that never booted won't boot next time either
+		if (!slot.ready) this.broken = true;
 		this.workers = this.workers.filter((w) => w !== slot);
 		for (const [id, p] of this.pending) {
 			if (p.worker !== slot) continue;
@@ -95,9 +112,11 @@ export class RewritePool implements RewriteOffload {
 		input: Uint8Array | string;
 	}> {
 		const slot = this.workers.reduce<PoolWorker | null>(
-			(best, w) => (!best || w.busy < best.busy ? w : best),
+			(best, w) => (w.ready && (!best || w.busy < best.busy) ? w : best),
 			null
 		);
+		const booting = this.workers.some((w) => !w.ready);
+		if ((!slot || slot.busy > 0) && !booting) this.spawn();
 		if (!slot) return Promise.resolve({ output: null, input: job.input });
 		const full: RewriteJob = { ...job, id: this.nextId++ };
 		slot.busy++;

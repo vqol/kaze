@@ -27,6 +27,8 @@ const MAX_MEMORY_BYTES = 64 * 1024 * 1024;
 const MAX_ENTRY_BYTES = 16 * 1024 * 1024;
 const MAX_PERSISTED = 3000;
 const CACHE_URL = "https://kz-cache.invalid/";
+// how long an early request waits for the persisted index (see waitForIndex)
+const INDEX_WAIT_MS = 150;
 
 type Entry = {
 	key: string;
@@ -81,19 +83,28 @@ function lifetime(headers: RawHeaders, cc: Directives): number | null {
 	return null;
 }
 
-function isFresh(entry: Entry): boolean {
+/**
+ * "fresh": serve it. "revalidate": stale, but within the response's
+ * stale-while-revalidate window (RFC 5861): serve it and refresh it in the
+ * background. "stale": revalidate before serving.
+ */
+function freshness(entry: Entry): "fresh" | "revalidate" | "stale" {
 	const cc = parseCacheControl(header(entry.headers, "cache-control"));
-	if (cc["no-cache"]) return false;
+	if (cc["no-cache"]) return "stale";
 	if (
 		(header(entry.headers, "pragma") ?? "").toLowerCase().includes("no-cache")
 	)
-		return false;
+		return "stale";
 	const life = lifetime(entry.headers, cc);
-	if (life === null) return false;
+	if (life === null) return "stale";
 	const age =
 		(parseInt(header(entry.headers, "age") ?? "0", 10) || 0) +
 		(Date.now() - entry.storedAt) / 1000;
-	return age < life;
+	if (age < life) return "fresh";
+	// must-revalidate forbids serving stale; Cache-Control: no-cache was handled above
+	if (cc["must-revalidate"] || cc["proxy-revalidate"]) return "stale";
+	const swr = parseInt(cc["stale-while-revalidate"] as string, 10);
+	return Number.isFinite(swr) && age < life + swr ? "revalidate" : "stale";
 }
 
 function isStorable(status: number, headers: RawHeaders): boolean {
@@ -148,6 +159,7 @@ export class ProxyHttpCache extends Plugin {
 	private memoryBytes = 0;
 	private persisted: Set<string> | null = null;
 	private storage: Promise<Cache> | null = null;
+	private indexed: Promise<void> | null = null;
 	private hits = new WeakMap<KazeFetchRequest, true>();
 	private revalidating = new WeakMap<KazeFetchRequest, Entry>();
 	private nextId = 0;
@@ -156,7 +168,7 @@ export class ProxyHttpCache extends Plugin {
 		super("kaze-http-cache");
 		if (typeof caches === "undefined") return;
 		this.storage = caches.open(CACHE_NAME);
-		this.storage
+		this.indexed = this.storage
 			.then(async (cache) => {
 				const stored = await cache.keys();
 				for (const r of stored.slice(
@@ -173,6 +185,21 @@ export class ProxyHttpCache extends Plugin {
 			.catch(() => {
 				this.storage = null;
 			});
+	}
+
+	/**
+	 * Requests made while the index is still loading (a page restored at
+	 * startup) wait for it a little, so a persisted entry isn't a miss just
+	 * for arriving early; past the wait they go to the network as before.
+	 */
+	private async waitForIndex() {
+		if (this.persisted || !this.indexed) return;
+		let timer: ReturnType<typeof setTimeout> | undefined;
+		await Promise.race([
+			this.indexed,
+			new Promise<void>((r) => (timer = setTimeout(r, INDEX_WAIT_MS))),
+		]);
+		clearTimeout(timer);
 	}
 
 	private remember(entry: Entry) {
@@ -218,7 +245,9 @@ export class ProxyHttpCache extends Plugin {
 			this.memory.set(key, hit);
 			return hit;
 		}
-		if (!this.storage || !this.persisted?.has(key)) return undefined;
+		if (!this.storage) return undefined;
+		await this.waitForIndex();
+		if (!this.persisted?.has(key)) return undefined;
 		try {
 			const cache = await this.storage;
 			const stored = await cache.match(CACHE_URL + encodeURIComponent(key));
@@ -244,9 +273,13 @@ export class ProxyHttpCache extends Plugin {
 			const entry = await this.lookup(key);
 			if (!entry) return;
 
-			if (ctx.request.cache !== "no-cache" && isFresh(entry)) {
+			const state =
+				ctx.request.cache === "no-cache" ? "stale" : freshness(entry);
+			if (state !== "stale") {
 				this.hits.set(ctx.request, true);
 				props.earlyResponse = toResponse(entry, ctx.parsed.url.href);
+				if (state === "revalidate")
+					this.revalidateLater(handler, ctx.request, key);
 				return;
 			}
 
@@ -312,6 +345,37 @@ export class ProxyHttpCache extends Plugin {
 			(props.response as any).kzCacheId = id;
 			void this.collect(key, id, forCache, response);
 		});
+	}
+
+	private refreshing = new Set<string>();
+	/**
+	 * stale-while-revalidate: the page already has the stale copy; run the
+	 * request again through the whole fetch pipeline (cookies, hooks) as a
+	 * no-cache request, which revalidates the entry with If-None-Match /
+	 * If-Modified-Since and stores the result. One at a time per entry.
+	 */
+	private revalidateLater(
+		handler: KazeFetchHandler,
+		request: KazeFetchRequest,
+		key: string
+	) {
+		if (this.refreshing.has(key)) return;
+		this.refreshing.add(key);
+		void (async () => {
+			try {
+				const response = await handler.handleFetch({
+					...request,
+					cache: "no-cache",
+				});
+				// nobody reads it: let a streamed body go
+				const body = response.body as unknown;
+				if (body instanceof ReadableStream) await body.cancel();
+			} catch {
+				// the stale copy stays until it expires
+			} finally {
+				this.refreshing.delete(key);
+			}
+		})();
 	}
 
 	private newId() {

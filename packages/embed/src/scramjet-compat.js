@@ -39,8 +39,11 @@
 		constructor() {}
 		async setTransport(_path, args) {
 			const opts = args?.[0] ?? {};
-			if (opts.wisp || opts.websocket)
-				announceWisp(opts.wisp || opts.websocket);
+			const url =
+				typeof opts === "string" ? opts : opts.wisp || opts.websocket;
+			// a transport without a wisp url (bare, a custom one) can't carry
+			// over: use this site's /wisp/ now instead of after the 3s wait
+			announceWisp(/^wss?:\/\//i.test(url ?? "") ? url : defaultWisp());
 		}
 		async getTransport() {
 			return "kaze";
@@ -80,6 +83,7 @@
 			await loadScripts(ASSETS + "kaze.js", ASSETS + "controller.api.js");
 			const api = window.$kazeController;
 			// setTransport normally comes right after init; don't wait forever
+			// for sites that never call it
 			const wisp = await Promise.race([
 				wispKnown,
 				new Promise((r) => setTimeout(() => r(defaultWisp()), 3000)),
