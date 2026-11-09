@@ -65,13 +65,17 @@ class ControllerReference {
 					// Only the page that made the request has to see the cookies before
 					// its fetch()/XHR resolves (document.cookie right after a response).
 					// Waiting for "any" client used to resolve on the controller window's
-					// ack, which raced the requesting page.
+					// ack, which raced the requesting page. Cookies that page can't read
+					// (HttpOnly, another host's) can't be observed early, so they don't
+					// hold the response either.
+					const pageCanRead = options?.visibleToPage !== false;
 					let waitFor: Promise<void> | null = null;
 					let waitId: string | null = null;
 					for (const client of clients) {
 						const id = makeId();
 						const mustAck =
 							!isNavigation &&
+							pageCanRead &&
 							!!options?.clientId &&
 							client.id === options.clientId;
 						if (mustAck) {

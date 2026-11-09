@@ -69,7 +69,18 @@ export async function doHandleFetch(
 	const response = await doNetworkFetch(handler, request, parsed, newheaders);
 
 	// set-cookie needs to take the raw headers. after this, we can flatten the headers into a KazeHeaders object
-	await handleCookies(handler, request, parsed, response.rawHeaders);
+	// The jar updates synchronously here (rewriting below sees the new
+	// cookies); only telling the requesting page runs alongside the rewrite,
+	// and it's awaited before the response goes back, so a fetch() still
+	// can't resolve before document.cookie shows its cookies.
+	const cookieSync = handleCookies(
+		handler,
+		request,
+		parsed,
+		response.rawHeaders
+	);
+	// awaited below; don't report a rejection twice if rewriting throws first
+	cookieSync.catch(() => {});
 
 	if (isDocument(parsed)) {
 		// for document.referer
@@ -157,6 +168,8 @@ export async function doHandleFetch(
 		// the browser doesn't try to decode UTF-8 bytes with the original encoding.
 		normalizeContentType(parsed, responseHeaders);
 	}
+
+	await cookieSync;
 
 	const respcontext: typeof handler.hooks.fetch.response.context = {
 		request,
@@ -296,11 +309,17 @@ async function handleCookies(
 	rawHeaders: RawHeaders
 ) {
 	const cookies = [];
+	let visibleToPage = false;
 
 	for (const [key, value] of rawHeaders) {
 		if (key.toLowerCase() !== "set-cookie") continue;
 
-		handler.context.cookieJar.setCookies(value, parsed.url);
+		const result = handler.context.cookieJar.setCookiesFromResponse(
+			value,
+			parsed.url,
+			parsed.clientUrl
+		);
+		if (result.visibleToPage) visibleToPage = true;
 		cookies.push({
 			url: parsed.url,
 			cookie: value,
@@ -314,5 +333,6 @@ async function handleCookies(
 	await handler.sendSetCookie(cookies, {
 		destination: parsed.destination,
 		clientId: request.clientId,
+		visibleToPage,
 	});
 }

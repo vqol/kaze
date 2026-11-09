@@ -90,6 +90,43 @@ export class CookieJar {
 	 * when `fromJs`). Returns how many cookies were accepted.
 	 */
 	setCookies(cookieString: string, url: URL, fromJs = false): number {
+		return this.apply(cookieString, url, fromJs, null).accepted;
+	}
+
+	/**
+	 * setCookies for a response, also reporting whether the change can show up
+	 * in document.cookie of a page on `pageUrl`: a cookie that isn't HttpOnly
+	 * and domain-matches the page's host, or a replaced/deleted cookie that
+	 * was. Unknown or non-http(s) pages always count as affected.
+	 */
+	setCookiesFromResponse(
+		cookieString: string,
+		url: URL,
+		pageUrl: URL | undefined
+	): { accepted: number; visibleToPage: boolean } {
+		const host =
+			pageUrl &&
+			(pageUrl.protocol === "http:" || pageUrl.protocol === "https:") &&
+			pageUrl.hostname
+				? pageUrl.hostname.toLowerCase()
+				: null;
+		const { accepted, touched } = this.apply(cookieString, url, false, []);
+		if (host === null) return { accepted, visibleToPage: accepted > 0 };
+		const visible = (c: Cookie) => {
+			if (c.httpOnly) return false;
+			const d = c.domain!.slice(1);
+			return c.hostOnly ? d === host : d === host || host.endsWith("." + d);
+		};
+		return { accepted, visibleToPage: touched!.some(visible) };
+	}
+
+	/** `touched` collects every cookie added, replaced or removed */
+	private apply(
+		cookieString: string,
+		url: URL,
+		fromJs: boolean,
+		touched: Cookie[] | null
+	): { accepted: number; touched: Cookie[] | null } {
 		const parsedCookies = parse(cookieString);
 		const hostname = url.hostname.toLowerCase();
 		const now = _Date.now();
@@ -159,6 +196,11 @@ export class CookieJar {
 			// scripts can't overwrite (or delete) HttpOnly cookies either
 			if (fromJs && prev?.httpOnly) continue;
 
+			if (touched) {
+				touched.push(cookie);
+				if (prev) touched.push(prev);
+			}
+
 			if (typeof cookie.maxAge === "number") {
 				if (!Number.isFinite(cookie.maxAge)) {
 					delete cookie.maxAge;
@@ -185,7 +227,7 @@ export class CookieJar {
 			accepted++;
 		}
 
-		return accepted;
+		return { accepted, touched };
 	}
 
 	getCookies(

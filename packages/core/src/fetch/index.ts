@@ -84,6 +84,11 @@ export type CookieSyncOptions = {
 	destination?: RequestDestination;
 	/** service worker client that made the request; its jar must be updated before the response resolves */
 	clientId?: string;
+	/**
+	 * false when no cookie in the batch can change that client's
+	 * document.cookie (HttpOnly, or another host's): it needn't ack them
+	 */
+	visibleToPage?: boolean;
 };
 
 export type FetchHandlerInit = {
