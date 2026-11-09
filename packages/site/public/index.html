@@ -7,6 +7,16 @@
 		<!-- defer: the page paints while these download. controller.api.js still
 		     finds kaze.js through document.scripts / document.currentScript to
 		     warm-start its fetch worker -->
+		<!-- fetched by controller.api.js as soon as it runs; the preload starts
+		     it while the parser is still here. Same mode and credentials as
+		     that fetch(), so the browser uses one download for both -->
+		<link
+			rel="preload"
+			href="/kaze/kaze.wasm"
+			as="fetch"
+			type="application/wasm"
+			crossorigin="anonymous"
+		/>
 		<script src="/kaze/kaze.js" defer></script>
 		<script src="/controller/controller.api.js" defer></script>
 		<style>

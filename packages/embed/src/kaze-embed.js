@@ -16,14 +16,23 @@
 	const defaultWisp = () =>
 		`${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/wisp/`;
 
-	function loadScript(src) {
-		return new Promise((resolve, reject) => {
-			const el = document.createElement("script");
-			el.src = src;
-			el.onload = resolve;
-			el.onerror = () => reject(new Error(`kaze: could not load ${src}`));
-			document.head.append(el);
-		});
+	// Downloads every script at once but runs them in the order given:
+	// script-inserted scripts with async = false keep insertion order.
+	function loadScripts(...srcs) {
+		return Promise.all(
+			srcs.map(
+				(src) =>
+					new Promise((resolve, reject) => {
+						const el = document.createElement("script");
+						el.src = src;
+						el.async = false;
+						el.onload = resolve;
+						el.onerror = () =>
+							reject(new Error(`kaze: could not load ${src}`));
+						document.head.append(el);
+					})
+			)
+		);
 	}
 
 	function whenActive(reg) {
@@ -48,8 +57,7 @@
 					"kaze: serve kaze-assets from this site's own origin; browsers don't allow service workers or workers from another origin"
 				);
 
-			await loadScript(ASSETS + "kaze.js");
-			await loadScript(ASSETS + "controller.api.js");
+			await loadScripts(ASSETS + "kaze.js", ASSETS + "controller.api.js");
 
 			const api = window.$kazeController;
 			const transport = new api.WorkerTransport({

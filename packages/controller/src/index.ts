@@ -121,14 +121,39 @@ type FrameOptions = {
 	plugins?: ManagedPlugin[];
 };
 
+/** download and compile the rewriter, streaming when the server allows it */
+async function compileRewriterWasm(url: string): Promise<WebAssembly.Module> {
+	// compile off the main thread while the download streams in; pages
+	// reuse this module (inject.ts) instead of compiling their own copy
+	const resp = await fetch(url);
+	if (!resp.ok) throw new Error(`kaze: ${url} returned ${resp.status}`);
+	try {
+		return await WebAssembly.compileStreaming(resp.clone());
+	} catch {
+		// wrong content-type from the host's static server
+		return await WebAssembly.compile(await resp.arrayBuffer());
+	}
+}
+
 // The engine worker starts the moment this script loads, so it finishes booting
 // while the page is still registering its service worker.
 let warmEngine: { url: string; worker: Worker } | null = null;
+// Same for the rewriter wasm: the controller used to fetch it only after the
+// service worker was ready. kaze.wasm sits next to kaze.js in every layout kaze
+// ships; a controller configured with another wasmPath fetches its own.
+let warmWasm: { url: string; module: Promise<WebAssembly.Module> } | null =
+	null;
 try {
 	const script = document.currentScript as HTMLScriptElement | null;
 	const kazeScript = [...document.scripts].find((s) =>
 		/\/kaze(\.\w+)?\.js(\?|$)/.test(s.src)
 	);
+	if (kazeScript?.src && typeof WebAssembly !== "undefined") {
+		const url = new URL("kaze.wasm", kazeScript.src).href;
+		const module = compileRewriterWasm(url);
+		module.catch(() => {}); // loadKazeWasm retries and reports
+		warmWasm = { url, module };
+	}
 	if (script?.src && kazeScript && typeof Worker !== "undefined") {
 		const url = new URL("controller.fetchworker.js", script.src).href;
 		const worker = new Worker(url, { name: "kaze-fetch" });
@@ -201,16 +226,13 @@ export class Controller {
 			return;
 		}
 
-		// compile off the main thread while the download streams in; pages
-		// reuse this module (inject.ts) instead of compiling their own copy
-		const resp = await fetch(this.config.wasmPath);
-		let mod: WebAssembly.Module;
-		try {
-			mod = await WebAssembly.compileStreaming(resp.clone());
-		} catch {
-			// wrong content-type from the host's static server
-			mod = await WebAssembly.compile(await resp.arrayBuffer());
+		const url = new URL(this.config.wasmPath, location.href).href;
+		let mod: WebAssembly.Module | null = null;
+		if (warmWasm?.url === url) {
+			// one download per page: later controllers share it too
+			mod = await warmWasm.module.catch(() => null);
 		}
+		mod ??= await compileRewriterWasm(url);
 		setWasm(mod);
 		this.wasmAlreadyFetched = true;
 		if (this.engine) this.toEngine({ type: "wasm", module: mod });
