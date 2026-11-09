@@ -441,7 +441,9 @@ const VOID_ELEMENTS: Set<string> = new _Set([
 	"track",
 	"wbr",
 ]);
-const ONLY_WHITESPACE = /^\s*$/;
+// what the html parser skips before content (\s would also take U+00A0,
+// which is text to the parser)
+const ONLY_WHITESPACE = /^[\t\n\f\r ]*$/;
 const TEXT_NEEDS_ESCAPE = /[&<>\u00a0]/;
 const ATTR_NEEDS_ESCAPE = /["&\u00a0]/;
 const ATTR_ESCAPE = /["&\u00a0]/g;
@@ -452,11 +454,14 @@ const STREAM_SLICE = 32 * 1024;
 /**
  * Rewrites a document as it arrives, one tag at a time: rewriting only ever
  * looks at an element's own attributes and text, so nothing needs a tree.
- * Kaze's scripts go out with <head>, letting the browser boot and start
- * fetching subresources while the rest of the page is still being rewritten.
+ * Kaze's scripts go out right after <head>, or, when the page leaves out
+ * <html> or <head> (both optional), just before its first real content: the
+ * first tag or text after the doctype, comments and whitespace. The browser
+ * then opens the implied <html> and <head> for kaze's scripts, so they still
+ * run before any page script, and the doctype still comes first.
  *
- * Only well-formed starts (<html> then <head>) stream. Anything else is
- * buffered and goes through rewriteHtml, which handles the quirky cases.
+ * Input whose start the parser can't place that way (an end tag before any
+ * content) is buffered and goes through rewriteHtml.
  */
 class StreamingHtmlRewriter implements Partial<Handler> {
 	private mode: "preamble" | "html" | "streaming" | "buffer" = "preamble";
@@ -584,18 +589,20 @@ class StreamingHtmlRewriter implements Partial<Handler> {
 
 	onopentag(name: string, attribs: Record<string, string>) {
 		if (this.mode === "buffer") return;
-		if (this.mode === "preamble") {
-			if (name !== "html") return this.fallback();
+		if (this.mode === "preamble" && name === "html") {
 			this.sink(this.openTag(name, attribs));
 			this.mode = "html";
 			this.stack.push(name);
 			return;
 		}
-		if (this.mode === "html") {
-			if (name !== "head") return this.fallback();
-			this.stack.push(name);
-			this.commit(this.openTag(name, attribs));
-			return;
+		if (this.mode === "preamble" || this.mode === "html") {
+			if (name === "head") {
+				this.stack.push(name);
+				this.commit(this.openTag(name, attribs));
+				return;
+			}
+			// the first real content: kaze goes in the head it implies
+			this.commit("");
 		}
 		if (name === "script" || name === "style") {
 			this.capture = new Element(name, attribs, []);
@@ -609,6 +616,8 @@ class StreamingHtmlRewriter implements Partial<Handler> {
 
 	onclosetag(name: string) {
 		if (this.mode === "buffer") return;
+		// an end tag before any content: let the tree-based rewriter place kaze
+		if (this.mode !== "streaming") return this.fallback();
 		if (this.capture && name === this.capture.name) {
 			const el = this.capture;
 			this.capture = null;
@@ -632,11 +641,14 @@ class StreamingHtmlRewriter implements Partial<Handler> {
 			this.captureText.push(data);
 			return;
 		}
-		if (
-			this.mode !== "streaming" &&
-			RegExp_exec(ONLY_WHITESPACE, data) === null
-		)
-			return this.fallback();
+		if (this.mode !== "streaming") {
+			// whitespace before content is dropped by the parser: keep holding
+			if (RegExp_exec(ONLY_WHITESPACE, data) !== null) {
+				this.sink(data);
+				return;
+			}
+			this.commit("");
+		}
 		// nothing dom-serializer would escape
 		if (RegExp_exec(TEXT_NEEDS_ESCAPE, data) === null) {
 			this.sink(data);
