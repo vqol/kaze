@@ -10,3 +10,4 @@ packages/site/server.log
 bench-results/
 packages/embed/assets
 packages/site/.compressed
+packages/site/.libcurl

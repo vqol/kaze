@@ -20,6 +20,7 @@ import {
 	type KazeContext,
 } from "@kaze/core";
 import { coalesceStream } from "./stream";
+import { importScriptFrom } from "./import-script";
 import { ProxyHttpCache } from "./http-cache";
 import { RewritePool } from "./rewrite-pool";
 import {
@@ -94,7 +95,7 @@ export function startTransport(spec: TransportSpec): Promise<ProxyTransport> {
 		started = (async () => {
 			for (const script of spec.scripts) {
 				if (spec.module) await import(/* webpackIgnore: true */ script);
-				else importScripts(script);
+				else importScriptFrom(script);
 			}
 			let ctor: any = self;
 			for (const part of spec.construct.split(".")) ctor = ctor?.[part];

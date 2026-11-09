@@ -2,6 +2,10 @@ import express from "express";
 import path from "path";
 import { fileURLToPath } from "url";
 import http from "http";
+import fs from "fs";
+import os from "os";
+// @ts-expect-error plain js
+import { splitLibcurl } from "../../../../../scripts/patch-libcurl.mjs";
 import { server as wisp, logging } from "@mercuryworkshop/wisp-js/server";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -25,12 +29,17 @@ export async function startHarness() {
 		express.static(path.join(packageRoot, "node_modules/@kaze/controller/dist"))
 	);
 
+	// the same libcurl build the site and kaze-embed ship: wasm split out of
+	// the script (see scripts/patch-libcurl.mjs)
 	app.use(
 		"/libcurl",
 		express.static(
-			path.join(
-				packageRoot,
-				"node_modules/@mercuryworkshop/libcurl-transport/dist"
+			splitLibcurl(
+				path.join(
+					packageRoot,
+					"node_modules/@mercuryworkshop/libcurl-transport/dist"
+				),
+				fs.mkdtempSync(path.join(os.tmpdir(), "runway-libcurl-"))
 			)
 		)
 	);

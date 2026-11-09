@@ -11,6 +11,7 @@ import type {
 	TransportSocketOutbound,
 } from "./worker-transport";
 import { coalesceStream } from "./stream";
+import { importScriptFrom } from "./import-script";
 
 declare const self: DedicatedWorkerGlobalScope;
 
@@ -35,7 +36,7 @@ self.onmessage = async (e: MessageEvent<TransportWorkerInbound>) => {
 			ready = (async () => {
 				for (const script of msg.scripts) {
 					if (msg.module) await import(/* webpackIgnore: true */ script);
-					else importScripts(script);
+					else importScriptFrom(script);
 				}
 				const ctor = resolvePath(msg.construct);
 				if (typeof ctor !== "function")

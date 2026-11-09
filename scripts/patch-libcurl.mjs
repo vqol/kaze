@@ -5,8 +5,18 @@
 // The patch runs curl as soon as a wisp packet arrives (coalesced through a
 // MessageChannel) and keeps the interval only as a fallback for curl timers.
 //
+// It also lets libcurl load its wasm as a separate file. Upstream inlines the
+// 1.4MB wasm as a base64 data URI (1.9MB of script to download and parse, then
+// decode, before compiling can start). With these edits a dist whose data URI is
+// replaced by a file name loads that file with WebAssembly.instantiateStreaming,
+// resolved next to the script, in a window or a worker. The patched dist still
+// works unchanged with the data URI; `--split` produces the separate files.
+//
 // usage (inside a `pnpm patch` checkout): node scripts/patch-libcurl.mjs <dist file>...
+//        node scripts/patch-libcurl.mjs --split <patched dist dir> <out dir>
 import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 const edits = [
 	[
@@ -118,19 +128,101 @@ const edits = [
 		"if (response_info.status === 204 || response_info.status === 205) {",
 		"if (response_info.status === 204 || response_info.status === 205 || response_info.status === 304) {",
 	],
+	// separate wasm (see --split): start loading at once, like the inline one.
+	// Upstream only auto-starts for a data URI and otherwise waits for
+	// load_wasm(url), which LibcurlClient never calls.
+	[
+		"  if (wasmBinaryFile && isDataURI(wasmBinaryFile)) var asm = createWasm();\n",
+		"  // kaze: a separate wasm file loads right away too (instantiateStreaming)\n  if (wasmBinaryFile) var asm = createWasm();\n",
+	],
+	[
+		"  if (wasmBinaryFile && isDataURI(wasmBinaryFile)) run();\n",
+		"  if (wasmBinaryFile) run();\n",
+	],
+	[
+		"    if (!wasmBinaryFile || !isDataURI(wasmBinaryFile)) {\n      wasmBinaryFile = url;",
+		"    if (!wasmBinaryFile) {\n      wasmBinaryFile = url;",
+	],
+	// resolve the wasm next to this script. A worker's importScripts() has no
+	// currentScript and self.location is the worker's own url, so kaze's
+	// loaders name the script being imported in self.$kazeImportingScript.
+	[
+		"    if (ENVIRONMENT_IS_WORKER) {\n      scriptDirectory = self.location.href;\n",
+		'    if (ENVIRONMENT_IS_WORKER) {\n      // kaze: importScripts() has no currentScript\n      scriptDirectory = typeof self.$kazeImportingScript == "string" ? self.$kazeImportingScript : self.location.href;\n',
+		"index.js",
+	],
+	// the module build knows its own url, in a window or a worker
+	[
+		'  var scriptDirectory = "";\n',
+		"  var scriptDirectory = import.meta.url;\n",
+		"index.mjs",
+	],
+	[
+		"    if (ENVIRONMENT_IS_WORKER) {\n      scriptDirectory = self.location.href;\n",
+		"    if (ENVIRONMENT_IS_WORKER) {\n      scriptDirectory = import.meta.url;\n",
+		"index.mjs",
+	],
 ];
 
-for (const file of process.argv.slice(2)) {
-	let src = fs.readFileSync(file, "utf8");
-	for (const [from, to] of edits) {
-		if (src.includes(to)) continue;
-		const n = src.split(from).length - 1;
-		if (n !== 1)
+const DATA_URI =
+	/(\n {2}wasmBinaryFile = )"data:application\/octet-stream;base64,([A-Za-z0-9+/=]+)";\n/;
+export const WASM_FILE = "libcurl.wasm";
+
+/**
+ * Writes index.js and index.mjs from a patched libcurl-transport dist to
+ * `outDir` with the inline wasm moved to libcurl.wasm. Returns the out paths.
+ */
+export function splitLibcurl(distDir, outDir) {
+	fs.mkdirSync(outDir, { recursive: true });
+	let wasm = null;
+	for (const name of ["index.js", "index.mjs"]) {
+		const src = fs.readFileSync(path.join(distDir, name), "utf8");
+		if (!src.includes("if (wasmBinaryFile) var asm = createWasm();"))
 			throw new Error(
-				`${file}: expected 1 match, got ${n} for:\n${from.slice(0, 120)}`
+				`${name}: not patched for a separate wasm (pnpm install applies kaze's patch)`
 			);
-		src = src.replace(from, () => to);
+		const m = DATA_URI.exec(src);
+		if (!m) throw new Error(`${name}: inline wasm not found`);
+		const bytes = Buffer.from(m[2], "base64");
+		if (wasm && Buffer.compare(wasm, bytes) !== 0)
+			throw new Error("index.js and index.mjs inline different wasm");
+		wasm = bytes;
+		fs.writeFileSync(
+			path.join(outDir, name),
+			src.replace(DATA_URI, () => `${m[1]}${JSON.stringify(WASM_FILE)};\n`)
+		);
 	}
-	fs.writeFileSync(file, src);
-	console.log(`${file}: patched`);
+	fs.writeFileSync(path.join(outDir, WASM_FILE), wasm);
+	for (const extra of ["index.d.ts"]) {
+		const from = path.join(distDir, extra);
+		if (fs.existsSync(from)) fs.copyFileSync(from, path.join(outDir, extra));
+	}
+	return outDir;
+}
+
+function patchFiles(files) {
+	for (const file of files) {
+		let src = fs.readFileSync(file, "utf8");
+		for (const [from, to, only] of edits) {
+			if (only && path.basename(file) !== only) continue;
+			if (src.includes(to)) continue;
+			const n = src.split(from).length - 1;
+			if (n !== 1)
+				throw new Error(
+					`${file}: expected 1 match, got ${n} for:\n${from.slice(0, 120)}`
+				);
+			src = src.replace(from, () => to);
+		}
+		fs.writeFileSync(file, src);
+		console.log(`${file}: patched`);
+	}
+}
+
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+	const args = process.argv.slice(2);
+	if (args[0] === "--split") {
+		if (args.length !== 3)
+			throw new Error("usage: patch-libcurl.mjs --split <dist dir> <out dir>");
+		console.log(`libcurl split into ${splitLibcurl(args[1], args[2])}`);
+	} else patchFiles(args);
 }

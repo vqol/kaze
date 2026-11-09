@@ -1,9 +1,12 @@
 // Collects everything a website needs into assets/. The libcurl copy here is the
-// patched one from this workspace; a pnpm patch doesn't reach package consumers.
+// patched one from this workspace, split into script + wasm; a pnpm patch
+// doesn't reach package consumers.
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import os from "node:os";
 import { precompress } from "./precompress.mjs";
+import { splitLibcurl } from "../../scripts/patch-libcurl.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const out = path.join(here, "assets");
@@ -30,7 +33,13 @@ for (const name of [
 const libcurl = path.dirname(
 	fileURLToPath(import.meta.resolve("@mercuryworkshop/libcurl-transport"))
 );
-copy(path.join(libcurl, "index.js"), "libcurl/index.js");
+// the patched libcurl.js with its wasm as a separate file (instantiateStreaming
+// instead of a 1.9MB base64 string inside the script)
+const split = fs.mkdtempSync(path.join(os.tmpdir(), "kaze-libcurl-"));
+splitLibcurl(libcurl, split);
+for (const f of ["index.js", "libcurl.wasm"])
+	copy(path.join(split, f), `libcurl/${f}`);
+fs.rmSync(split, { recursive: true, force: true });
 for (const f of ["kaze-embed.js", "scramjet-compat.js"])
 	copy(path.join(here, "src", f), f);
 

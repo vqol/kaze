@@ -26,8 +26,8 @@ const RUNTIME_CACHE = "public, max-age=600, stale-while-revalidate=86400";
 // ../embed/precompress.mjs); anything missing is compressed off the event loop
 const load = createFileCache();
 
-async function serveFile(req, res, prefix, file, stat) {
-	const entry = await load(file, stat, compressedBase(prefix, file));
+async function serveFile(req, res, prefix, dir, file, stat) {
+	const entry = await load(file, stat, compressedBase(prefix, dir, file));
 	const ext = path.extname(file);
 	const headers = {
 		"Content-Type": types[ext] ?? "application/octet-stream",
@@ -50,7 +50,7 @@ async function findFile(pathname) {
 		const file = path.join(dir, pathname.slice(prefix.length));
 		if (!file.startsWith(dir)) return null; // no traversal
 		const stat = await fs.promises.stat(file).catch(() => null);
-		if (stat?.isFile()) return { prefix, file, stat };
+		if (stat?.isFile()) return { prefix, dir, file, stat };
 	}
 	return null;
 }
@@ -67,7 +67,8 @@ const server = http.createServer(async (req, res) => {
 	try {
 		const found = await findFile(pathname);
 		if (found) {
-			await serveFile(req, res, found.prefix, found.file, found.stat);
+			const { prefix, dir, file, stat } = found;
+			await serveFile(req, res, prefix, dir, file, stat);
 			return;
 		}
 	} catch (err) {

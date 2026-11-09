@@ -23,6 +23,8 @@ import { fileURLToPath } from "node:url";
 import { chromium, type Browser, type Page } from "playwright";
 import { startLabServer } from "./lab.ts";
 import { publish } from "./publish.ts";
+// @ts-expect-error plain js
+import { splitLibcurl } from "../../../../scripts/patch-libcurl.mjs";
 import {
 	controllerSpec,
 	scramjet1Spec,
@@ -60,8 +62,12 @@ const BEFORE = arg("--before");
 const libcurl2 = path.dirname(
 	fileURLToPath(import.meta.resolve("@mercuryworkshop/libcurl-transport"))
 );
-// the libcurl kaze actually serves
-const kazeLibcurlDist = libcurl2;
+// the libcurl kaze actually serves: the patched build with its wasm split
+// out (what the site and kaze-embed ship, see scripts/patch-libcurl.mjs)
+const kazeLibcurlDist = splitLibcurl(
+	libcurl2,
+	fs.mkdtempSync(path.join(os.tmpdir(), "kaze-bench-libcurl-"))
+);
 
 const allSpecs: ProxySpec[] = [
 	controllerSpec({

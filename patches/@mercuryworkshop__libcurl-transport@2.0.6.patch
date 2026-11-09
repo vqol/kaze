@@ -1,8 +1,37 @@
 diff --git a/dist/index.js b/dist/index.js
-index f592756ff9679696cb5b0e8b4b9786d2fdd8a1ef..820cbf0ace11494fe94bbe7bb76614be6833052a 100644
+index f592756ff9679696cb5b0e8b4b9786d2fdd8a1ef..8f898546dcf286a538544a6e042ba5a9b78cc06e 100644
 --- a/dist/index.js
 +++ b/dist/index.js
-@@ -5276,6 +5276,7 @@ var libcurl = (function() {
+@@ -106,7 +106,8 @@ var libcurl = (function() {
+     }
+   } else if (ENVIRONMENT_IS_WEB || ENVIRONMENT_IS_WORKER) {
+     if (ENVIRONMENT_IS_WORKER) {
+-      scriptDirectory = self.location.href;
++      // kaze: importScripts() has no currentScript
++      scriptDirectory = typeof self.$kazeImportingScript == "string" ? self.$kazeImportingScript : self.location.href;
+     } else if (typeof document != "undefined" && document.currentScript) {
+       scriptDirectory = document.currentScript.src;
+     }
+@@ -4681,7 +4682,8 @@ var libcurl = (function() {
+     ignoredModuleProp("fetchSettings");
+   }
+   var asmLibraryArg = { "__assert_fail": ___assert_fail, "__call_sighandler": ___call_sighandler, "__syscall__newselect": ___syscall__newselect, "__syscall_bind": ___syscall_bind, "__syscall_chmod": ___syscall_chmod, "__syscall_connect": ___syscall_connect, "__syscall_fchmod": ___syscall_fchmod, "__syscall_fcntl64": ___syscall_fcntl64, "__syscall_fstat64": ___syscall_fstat64, "__syscall_fstatat64": ___syscall_fstatat64, "__syscall_getcwd": ___syscall_getcwd, "__syscall_getdents64": ___syscall_getdents64, "__syscall_getsockname": ___syscall_getsockname, "__syscall_getsockopt": ___syscall_getsockopt, "__syscall_ioctl": ___syscall_ioctl, "__syscall_lstat64": ___syscall_lstat64, "__syscall_open": ___syscall_open, "__syscall_pipe": ___syscall_pipe, "__syscall_poll": ___syscall_poll, "__syscall_readlink": ___syscall_readlink, "__syscall_recvfrom": ___syscall_recvfrom, "__syscall_rename": ___syscall_rename, "__syscall_rmdir": ___syscall_rmdir, "__syscall_sendto": ___syscall_sendto, "__syscall_socket": ___syscall_socket, "__syscall_stat64": ___syscall_stat64, "__syscall_unlink": ___syscall_unlink, "_emscripten_throw_longjmp": __emscripten_throw_longjmp, "_gmtime_js": __gmtime_js, "_tzset_js": __tzset_js, "alarm": _alarm, "clock_gettime": _clock_gettime, "emscripten_console_error": _emscripten_console_error, "emscripten_resize_heap": _emscripten_resize_heap, "environ_get": _environ_get, "environ_sizes_get": _environ_sizes_get, "fd_close": _fd_close, "fd_fdstat_get": _fd_fdstat_get, "fd_read": _fd_read, "fd_seek": _fd_seek, "fd_write": _fd_write, "getTempRet0": _getTempRet0, "getaddrinfo": _getaddrinfo, "gettimeofday": _gettimeofday, "invoke_i": invoke_i, "invoke_ii": invoke_ii, "invoke_iiii": invoke_iiii, "invoke_iiiiiijiii": invoke_iiiiiijiii, "invoke_jiii": invoke_jiii, "invoke_viii": invoke_viii, "setTempRet0": _setTempRet0, "strftime": _strftime, "time": _time };
+-  if (wasmBinaryFile && isDataURI(wasmBinaryFile)) var asm = createWasm();
++  // kaze: a separate wasm file loads right away too (instantiateStreaming)
++  if (wasmBinaryFile) var asm = createWasm();
+   else var asm = null;
+   var ___wasm_call_ctors = Module["___wasm_call_ctors"] = createExportWrapper("__wasm_call_ctors");
+   var _get_cacert = Module["_get_cacert"] = createExportWrapper("get_cacert");
+@@ -5128,7 +5130,7 @@ var libcurl = (function() {
+       Module["preInit"].pop()();
+     }
+   }
+-  if (wasmBinaryFile && isDataURI(wasmBinaryFile)) run();
++  if (wasmBinaryFile) run();
+   const packet_types = {
+     CONNECT: 1,
+     DATA: 2,
+@@ -5276,6 +5278,7 @@ var libcurl = (function() {
        return stream;
      }
      on_ws_msg(event) {
@@ -10,7 +39,7 @@ index f592756ff9679696cb5b0e8b4b9786d2fdd8a1ef..820cbf0ace11494fe94bbe7bb76614be
        let packet = new Uint8Array(event.data);
        if (packet.length < 5) {
          warn_msg(`wisp client warning: received a packet which is too short`);
-@@ -5304,6 +5305,35 @@ var libcurl = (function() {
+@@ -5304,6 +5307,35 @@ var libcurl = (function() {
      }
    }
    const _wisp_connections = {};
@@ -46,7 +75,7 @@ index f592756ff9679696cb5b0e8b4b9786d2fdd8a1ef..820cbf0ace11494fe94bbe7bb76614be
    class WispWebSocket extends EventTarget {
      constructor(url, protocols) {
        super();
-@@ -5696,9 +5726,14 @@ Several C libraries are used, and their licenses are listed below:
+@@ -5696,9 +5728,14 @@ Several C libraries are used, and their licenses are listed below:
      //remove the request on the next iteration of the loop
      remove_request(request_ptr) {
        this.assert_ready();
@@ -64,7 +93,7 @@ index f592756ff9679696cb5b0e8b4b9786d2fdd8a1ef..820cbf0ace11494fe94bbe7bb76614be
      }
      start_request(request_ptr) {
        this.assert_ready();
-@@ -5712,6 +5747,10 @@ Several C libraries are used, and their licenses are listed below:
+@@ -5712,6 +5749,10 @@ Several C libraries are used, and their licenses are listed below:
        this.event_loop = setInterval(() => {
          this.event_loop_func();
        }, 0);
@@ -75,7 +104,7 @@ index f592756ff9679696cb5b0e8b4b9786d2fdd8a1ef..820cbf0ace11494fe94bbe7bb76614be
      }
      event_loop_func() {
        let libcurl_active = _session_get_active(this.session_ptr);
-@@ -5720,6 +5759,7 @@ Several C libraries are used, and their licenses are listed below:
+@@ -5720,6 +5761,7 @@ Several C libraries are used, and their licenses are listed below:
        } else {
          clearInterval(this.event_loop);
          this.event_loop = null;
@@ -83,7 +112,7 @@ index f592756ff9679696cb5b0e8b4b9786d2fdd8a1ef..820cbf0ace11494fe94bbe7bb76614be
        }
      }
      close_now() {
-@@ -5897,7 +5937,7 @@ Several C libraries are used, and their licenses are listed below:
+@@ -5897,7 +5939,7 @@ Several C libraries are used, and their licenses are listed below:
      static create_response(response_data, response_info) {
        response_info.ok = response_info.status >= 200 && response_info.status < 300;
        response_info.statusText = status_messages[response_info.status] || "";
@@ -92,7 +121,7 @@ index f592756ff9679696cb5b0e8b4b9786d2fdd8a1ef..820cbf0ace11494fe94bbe7bb76614be
          response_data = null;
        }
        let response_obj = new Response(response_data, response_info);
-@@ -5995,10 +6035,21 @@ Several C libraries are used, and their licenses are listed below:
+@@ -5995,10 +6037,21 @@ Several C libraries are used, and their licenses are listed below:
        let finish_callback = (error) => {
          if (error === 0) {
            this.connected = true;
@@ -118,11 +147,57 @@ index f592756ff9679696cb5b0e8b4b9786d2fdd8a1ef..820cbf0ace11494fe94bbe7bb76614be
            this.onopen();
          } else {
            this.cleanup(error);
+@@ -6339,7 +6392,7 @@ Several C libraries are used, and their licenses are listed below:
+   }
+   function load_wasm(url) {
+     if (wasm_ready) return;
+-    if (!wasmBinaryFile || !isDataURI(wasmBinaryFile)) {
++    if (!wasmBinaryFile) {
+       wasmBinaryFile = url;
+       createWasm();
+       run();
 diff --git a/dist/index.mjs b/dist/index.mjs
-index 9a985472ccf062ba146492868f3b7aef289d3446..a4fd58fb8639e5b7b88dfbd026730b89bea3043a 100644
+index 9a985472ccf062ba146492868f3b7aef289d3446..9d5c36006c5adb29a7b86a12b33bfbe118609de1 100644
 --- a/dist/index.mjs
 +++ b/dist/index.mjs
-@@ -5255,6 +5255,7 @@ var libcurl = (function() {
+@@ -21,7 +21,7 @@ var libcurl = (function() {
+   if (Module["ENVIRONMENT"]) {
+     throw new Error("Module.ENVIRONMENT has been deprecated. To force the environment, use the ENVIRONMENT compile-time option (for example, -s ENVIRONMENT=web or -s ENVIRONMENT=node)");
+   }
+-  var scriptDirectory = "";
++  var scriptDirectory = import.meta.url;
+   function locateFile(path) {
+     if (Module["locateFile"]) {
+       return Module["locateFile"](path, scriptDirectory);
+@@ -85,7 +85,7 @@ var libcurl = (function() {
+     }
+   } else if (ENVIRONMENT_IS_WEB || ENVIRONMENT_IS_WORKER) {
+     if (ENVIRONMENT_IS_WORKER) {
+-      scriptDirectory = self.location.href;
++      scriptDirectory = import.meta.url;
+     } else if (typeof document != "undefined" && document.currentScript) {
+       scriptDirectory = document.currentScript.src;
+     }
+@@ -4660,7 +4660,8 @@ var libcurl = (function() {
+     ignoredModuleProp("fetchSettings");
+   }
+   var asmLibraryArg = { "__assert_fail": ___assert_fail, "__call_sighandler": ___call_sighandler, "__syscall__newselect": ___syscall__newselect, "__syscall_bind": ___syscall_bind, "__syscall_chmod": ___syscall_chmod, "__syscall_connect": ___syscall_connect, "__syscall_fchmod": ___syscall_fchmod, "__syscall_fcntl64": ___syscall_fcntl64, "__syscall_fstat64": ___syscall_fstat64, "__syscall_fstatat64": ___syscall_fstatat64, "__syscall_getcwd": ___syscall_getcwd, "__syscall_getdents64": ___syscall_getdents64, "__syscall_getsockname": ___syscall_getsockname, "__syscall_getsockopt": ___syscall_getsockopt, "__syscall_ioctl": ___syscall_ioctl, "__syscall_lstat64": ___syscall_lstat64, "__syscall_open": ___syscall_open, "__syscall_pipe": ___syscall_pipe, "__syscall_poll": ___syscall_poll, "__syscall_readlink": ___syscall_readlink, "__syscall_recvfrom": ___syscall_recvfrom, "__syscall_rename": ___syscall_rename, "__syscall_rmdir": ___syscall_rmdir, "__syscall_sendto": ___syscall_sendto, "__syscall_socket": ___syscall_socket, "__syscall_stat64": ___syscall_stat64, "__syscall_unlink": ___syscall_unlink, "_emscripten_throw_longjmp": __emscripten_throw_longjmp, "_gmtime_js": __gmtime_js, "_tzset_js": __tzset_js, "alarm": _alarm, "clock_gettime": _clock_gettime, "emscripten_console_error": _emscripten_console_error, "emscripten_resize_heap": _emscripten_resize_heap, "environ_get": _environ_get, "environ_sizes_get": _environ_sizes_get, "fd_close": _fd_close, "fd_fdstat_get": _fd_fdstat_get, "fd_read": _fd_read, "fd_seek": _fd_seek, "fd_write": _fd_write, "getTempRet0": _getTempRet0, "getaddrinfo": _getaddrinfo, "gettimeofday": _gettimeofday, "invoke_i": invoke_i, "invoke_ii": invoke_ii, "invoke_iiii": invoke_iiii, "invoke_iiiiiijiii": invoke_iiiiiijiii, "invoke_jiii": invoke_jiii, "invoke_viii": invoke_viii, "setTempRet0": _setTempRet0, "strftime": _strftime, "time": _time };
+-  if (wasmBinaryFile && isDataURI(wasmBinaryFile)) var asm = createWasm();
++  // kaze: a separate wasm file loads right away too (instantiateStreaming)
++  if (wasmBinaryFile) var asm = createWasm();
+   else var asm = null;
+   var ___wasm_call_ctors = Module["___wasm_call_ctors"] = createExportWrapper("__wasm_call_ctors");
+   var _get_cacert = Module["_get_cacert"] = createExportWrapper("get_cacert");
+@@ -5107,7 +5108,7 @@ var libcurl = (function() {
+       Module["preInit"].pop()();
+     }
+   }
+-  if (wasmBinaryFile && isDataURI(wasmBinaryFile)) run();
++  if (wasmBinaryFile) run();
+   const packet_types = {
+     CONNECT: 1,
+     DATA: 2,
+@@ -5255,6 +5256,7 @@ var libcurl = (function() {
        return stream;
      }
      on_ws_msg(event) {
@@ -130,7 +205,7 @@ index 9a985472ccf062ba146492868f3b7aef289d3446..a4fd58fb8639e5b7b88dfbd026730b89
        let packet = new Uint8Array(event.data);
        if (packet.length < 5) {
          warn_msg(`wisp client warning: received a packet which is too short`);
-@@ -5283,6 +5284,35 @@ var libcurl = (function() {
+@@ -5283,6 +5285,35 @@ var libcurl = (function() {
      }
    }
    const _wisp_connections = {};
@@ -166,7 +241,7 @@ index 9a985472ccf062ba146492868f3b7aef289d3446..a4fd58fb8639e5b7b88dfbd026730b89
    class WispWebSocket extends EventTarget {
      constructor(url, protocols) {
        super();
-@@ -5675,9 +5705,14 @@ Several C libraries are used, and their licenses are listed below:
+@@ -5675,9 +5706,14 @@ Several C libraries are used, and their licenses are listed below:
      //remove the request on the next iteration of the loop
      remove_request(request_ptr) {
        this.assert_ready();
@@ -184,7 +259,7 @@ index 9a985472ccf062ba146492868f3b7aef289d3446..a4fd58fb8639e5b7b88dfbd026730b89
      }
      start_request(request_ptr) {
        this.assert_ready();
-@@ -5691,6 +5726,10 @@ Several C libraries are used, and their licenses are listed below:
+@@ -5691,6 +5727,10 @@ Several C libraries are used, and their licenses are listed below:
        this.event_loop = setInterval(() => {
          this.event_loop_func();
        }, 0);
@@ -195,7 +270,7 @@ index 9a985472ccf062ba146492868f3b7aef289d3446..a4fd58fb8639e5b7b88dfbd026730b89
      }
      event_loop_func() {
        let libcurl_active = _session_get_active(this.session_ptr);
-@@ -5699,6 +5738,7 @@ Several C libraries are used, and their licenses are listed below:
+@@ -5699,6 +5739,7 @@ Several C libraries are used, and their licenses are listed below:
        } else {
          clearInterval(this.event_loop);
          this.event_loop = null;
@@ -203,7 +278,7 @@ index 9a985472ccf062ba146492868f3b7aef289d3446..a4fd58fb8639e5b7b88dfbd026730b89
        }
      }
      close_now() {
-@@ -5876,7 +5916,7 @@ Several C libraries are used, and their licenses are listed below:
+@@ -5876,7 +5917,7 @@ Several C libraries are used, and their licenses are listed below:
      static create_response(response_data, response_info) {
        response_info.ok = response_info.status >= 200 && response_info.status < 300;
        response_info.statusText = status_messages[response_info.status] || "";
@@ -212,7 +287,7 @@ index 9a985472ccf062ba146492868f3b7aef289d3446..a4fd58fb8639e5b7b88dfbd026730b89
          response_data = null;
        }
        let response_obj = new Response(response_data, response_info);
-@@ -5974,10 +6014,21 @@ Several C libraries are used, and their licenses are listed below:
+@@ -5974,10 +6015,21 @@ Several C libraries are used, and their licenses are listed below:
        let finish_callback = (error) => {
          if (error === 0) {
            this.connected = true;
@@ -238,3 +313,12 @@ index 9a985472ccf062ba146492868f3b7aef289d3446..a4fd58fb8639e5b7b88dfbd026730b89
            this.onopen();
          } else {
            this.cleanup(error);
+@@ -6318,7 +6370,7 @@ Several C libraries are used, and their licenses are listed below:
+   }
+   function load_wasm(url) {
+     if (wasm_ready) return;
+-    if (!wasmBinaryFile || !isDataURI(wasmBinaryFile)) {
++    if (!wasmBinaryFile) {
+       wasmBinaryFile = url;
+       createWasm();
+       run();
