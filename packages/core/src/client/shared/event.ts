@@ -7,7 +7,9 @@ import {
 	Reflect_get,
 	Reflect_ownKeys,
 	Symbol_for,
+	_WeakMap,
 } from "@/shared/snapshot";
+import { AnyFunction } from "@/types";
 
 const realOnEvent = Symbol_for("kaze original onevent function");
 
@@ -132,22 +134,48 @@ export default function (client: KazeClient, self: Self) {
 		});
 	}
 
+	// one wrapper per author function. the browser dedupes listeners by
+	// (type, callback, capture), so wrapping the same function twice in two
+	// different proxies would make a repeated addEventListener run twice
+	const wrapped = new _WeakMap<AnyFunction, AnyFunction>();
+	const captureOf = (options: unknown) =>
+		typeof options === "object" && options !== null
+			? !!(options as AddEventListenerOptions).capture
+			: !!options;
+
 	client.Proxy("EventTarget.prototype.addEventListener", {
 		apply(ctx) {
 			if (typeof ctx.args[1] !== "function") return;
 
 			const origlistener = ctx.args[1];
-			const proxylistener = wraplistener(origlistener);
+			let proxylistener = wrapped.get(origlistener);
+			if (!proxylistener) {
+				proxylistener = wraplistener(origlistener);
+				wrapped.set(origlistener, proxylistener);
+			}
 
 			ctx.args[1] = proxylistener;
 
-			let arr = client.eventcallbacks.get(ctx.this);
-			arr ||= [] as any;
-			arr.push({
-				event: ctx.args[0] as string,
-				originalCallback: origlistener,
-				proxiedCallback: proxylistener,
-			});
+			const event = ctx.args[0] as string;
+			const capture = captureOf(ctx.args[2]);
+
+			const arr = client.eventcallbacks.get(ctx.this) || [];
+			// a duplicate registration is a no-op in the browser: don't track it twice
+			if (
+				!arr.some(
+					(e) =>
+						e.event === event &&
+						e.capture === capture &&
+						e.originalCallback === origlistener
+				)
+			) {
+				arr.push({
+					event,
+					capture,
+					originalCallback: origlistener,
+					proxiedCallback: proxylistener,
+				});
+			}
 			client.eventcallbacks.set(ctx.this, arr);
 		},
 	});
@@ -159,8 +187,13 @@ export default function (client: KazeClient, self: Self) {
 			const arr = client.eventcallbacks.get(ctx.this);
 			if (!arr) return;
 
+			const event = ctx.args[0];
+			const capture = captureOf(ctx.args[2]);
 			const i = arr.findIndex(
-				(e) => e.event === ctx.args[0] && e.originalCallback === ctx.args[1]
+				(e) =>
+					e.event === event &&
+					e.capture === capture &&
+					e.originalCallback === ctx.args[1]
 			);
 			if (i === -1) return;
 

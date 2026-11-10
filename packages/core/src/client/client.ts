@@ -230,13 +230,12 @@ export class KazeClient {
 
 	eventcallbacks: Map<
 		any,
-		[
-			{
-				event: string;
-				originalCallback: AnyFunction;
-				proxiedCallback: AnyFunction;
-			},
-		]
+		Array<{
+			event: string;
+			capture: boolean;
+			originalCallback: AnyFunction;
+			proxiedCallback: AnyFunction;
+		}>
 	> = new _Map();
 
 	meta: URLMeta;

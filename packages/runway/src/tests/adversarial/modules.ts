@@ -143,6 +143,19 @@ export default [
 		`
 	),
 	modTest(
+		// reading the script back must give the author's json, not our rewrite
+		"modules-importmap-readback",
+		`
+			const src = JSON.stringify({ imports: { "rb-spec": "/mod.js" } });
+			const im = document.createElement("script");
+			im.type = "importmap";
+			im.textContent = src;
+			assertEqual(im.textContent, src, "textContent reads back what was written");
+			document.head.appendChild(im);
+			assertEqual((await import("rb-spec")).v, "modvalue", "and the map still works");
+		`
+	),
+	modTest(
 		"modules-preload-link",
 		`
 			const l = document.createElement("link");

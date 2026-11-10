@@ -12,6 +12,7 @@ import { bytesToBase64 } from "@/shared/util";
 import { rewriteCss, unrewriteCss } from "@rewriters/css";
 import { rewriteHtml, unrewriteHtml } from "@rewriters/html";
 import { rewriteJs } from "@rewriters/js";
+import { rewriteImportMap } from "@rewriters/importmap";
 import { unrewriteUrl } from "@rewriters/url";
 import { KAZECLIENT } from "@/symbols";
 import { KazeClient } from "@client/index";
@@ -80,6 +81,18 @@ function scriptBlockTypeForElement(
 			) as string | null)
 		: null;
 	return getScriptBlockTypeString(type, language, hasType, hasLanguage);
+}
+
+// <script type="importmap"> is a json data block, not js: its targets still have
+// to be proxied, but it is never run through the js rewriter
+function isImportMapElement(client: KazeClient, element: Element) {
+	if (!client.box.instanceof(element, "HTMLScriptElement")) return false;
+	const type = client.natives.call(
+		"Element.prototype.getAttribute",
+		element,
+		"type"
+	) as string | null;
+	return type !== null && type.trim().toLowerCase() === "importmap";
 }
 
 // TODO: this is pretty bad. really this whole file sucks
@@ -454,6 +467,14 @@ export default function (client: KazeClient, self: typeof window) {
 					"kaze-attr-script-source-src",
 					bytesToBase64(TextEncoder_encode(newval))
 				);
+			} else if (isImportMapElement(client, ctx.this)) {
+				newval = rewriteImportMap(html, client.context, client.meta);
+				client.natives.call(
+					"Element.prototype.setAttribute",
+					ctx.this,
+					"kaze-attr-script-source-src",
+					bytesToBase64(TextEncoder_encode(html))
+				);
 			} else if (client.box.instanceof(ctx.this, "HTMLStyleElement")) {
 				newval = rewriteCss(html, client.context, client.meta);
 			} else if (String_indexOf(html, "<") === -1) {
@@ -524,6 +545,14 @@ export default function (client: KazeClient, self: typeof window) {
 			);
 
 			return newval;
+		} else if (isImportMapElement(client, element)) {
+			client.natives.call(
+				"Element.prototype.setAttribute",
+				element,
+				"kaze-attr-script-source-src",
+				bytesToBase64(TextEncoder_encode(value))
+			);
+			return rewriteImportMap(value, client.context, client.meta);
 		} else if (client.box.instanceof(element, "HTMLStyleElement")) {
 			return rewriteCss(value, client.context, client.meta);
 		} else {

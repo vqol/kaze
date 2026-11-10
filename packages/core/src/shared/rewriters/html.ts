@@ -11,6 +11,7 @@ import render from "dom-serializer";
 import { URLMeta, rewriteUrl } from "@rewriters/url";
 import { rewriteCss } from "@rewriters/css";
 import { rewriteJs } from "@rewriters/js";
+import { rewriteImportMap } from "@rewriters/importmap";
 import { KazeContext } from "@/shared";
 import { htmlRules } from "@/shared/htmlRules";
 import { parseDeclarativeRefresh } from "@/shared/refresh";
@@ -853,23 +854,11 @@ function traverseParsedHtml(node: any, context: KazeContext, meta: URLMeta) {
 		node.attribs.type?.toLowerCase() === "importmap" &&
 		node.children[0] !== undefined
 	) {
-		const json = node.children[0].data;
-		try {
-			const map = JSON_parse(json);
-			if (map.imports) {
-				for (const key in map.imports) {
-					let url = map.imports[key];
-					if (typeof url === "string") {
-						url = rewriteUrl(url, context, meta, { isModule: true });
-						map.imports[key] = url;
-					}
-				}
-			}
-
-			node.children[0].data = JSON_stringify(map);
-		} catch (e) {
-			dbg.error("Failed to parse importmap JSON:", e);
-		}
+		node.children[0].data = rewriteImportMap(
+			node.children[0].data,
+			context,
+			meta
+		);
 	}
 	if (
 		node.name === "script" &&
