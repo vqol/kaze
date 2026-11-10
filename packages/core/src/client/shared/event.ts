@@ -58,7 +58,10 @@ export default function (client: KazeClient, self: Self) {
 		},
 		storage: {
 			_init() {
-				return this.key.startsWith(client.url.host + "@");
+				// key is null for a native clear(); kaze never calls it, but be safe
+				return (
+					this.key !== null && this.key.startsWith(client.meta.origin.host + "@")
+				);
 			},
 			key() {
 				return this.key.substring(this.key.indexOf("@") + 1);
