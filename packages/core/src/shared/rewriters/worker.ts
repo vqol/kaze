@@ -26,7 +26,11 @@ export function rewriteWorkers(
 		rewritten = TextDecoder_decode(rewritten);
 	}
 
-	if (flagEnabled("encapsulateWorkers", context, meta.origin)) {
+	// module workers are not wrapped: a data: module has an opaque origin, so
+	// its static imports of the proxied (same-origin) dependencies turn into
+	// cross-origin module fetches and die without CORS headers, as a bare error
+	// event. a module's own scope already isolates its top-level bindings
+	if (!isModule && flagEnabled("encapsulateWorkers", context, meta.origin)) {
 		// TODO: check if there's already a sourceURL/sourcemap before appending another?
 		rewritten += `//# sourceURL=${url}`;
 		str += script(b64(rewritten as string));
