@@ -14,7 +14,12 @@ function rewriteUrlOptionsForFetch(init: RequestInit | undefined) {
 	return {
 		// `fetch()` and `new Request()` both default mode to "cors" per spec.
 		mode: init?.mode ?? "cors",
-		credentials: init?.credentials === "include" ? "include" : undefined,
+		// "same-origin" is the default and needs no stamp; "omit" has to reach the
+		// engine or cookies would be attached anyway
+		credentials:
+			init?.credentials === "include" || init?.credentials === "omit"
+				? init.credentials
+				: undefined,
 	};
 }
 

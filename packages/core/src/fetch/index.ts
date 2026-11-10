@@ -49,6 +49,9 @@ export interface KazeFetchParsed {
 	// was the request made with credentials=include?
 	fetchCredentialsInclude?: boolean;
 
+	// credentials=omit: no cookies out, and Set-Cookie on the response is ignored
+	fetchCredentialsOmit?: boolean;
+
 	// tracks RequestInit.mode if set
 	fetchMode?: KazeRequestMode;
 

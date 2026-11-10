@@ -70,7 +70,6 @@
 		"functionctor-asyncgenerator-flavor",
 		"functionctor-generator-flavor",
 		"functionctor-prototype-constructor-identity",
-		"http-credentials-omit",
 		"incumbent-window-open-cross-promise",
 		"incumbent-window-open-crossrealm",
 		"incumbent-window-open-eval",

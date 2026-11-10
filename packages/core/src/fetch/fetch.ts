@@ -308,6 +308,9 @@ async function handleCookies(
 	parsed: KazeFetchParsed,
 	rawHeaders: RawHeaders
 ) {
+	// credentials: "omit" also means the response may not set cookies
+	if (parsed.fetchCredentialsOmit) return;
+
 	const cookies = [];
 	let visibleToPage = false;
 

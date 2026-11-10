@@ -146,11 +146,9 @@ export function rewriteRequestHeaders(
 	}
 
 	const sameSiteContext = computeSameSiteContext(request, parsed, originUrl);
-	const cookies = handler.context.cookieJar.getCookies(
-		parsed.url,
-		false,
-		sameSiteContext
-	);
+	const cookies = parsed.fetchCredentialsOmit
+		? ""
+		: handler.context.cookieJar.getCookies(parsed.url, false, sameSiteContext);
 
 	if (cookies.length) {
 		headers.set("Cookie", cookies);
@@ -279,6 +277,7 @@ function requestIncludesCredentials(
 	request: KazeFetchRequest,
 	parsed: KazeFetchParsed
 ): boolean {
+	if (parsed.fetchCredentialsOmit) return false;
 	if (parsed.fetchCredentialsInclude) return true;
 	const dest = parsed.destination;
 	// fetch(): destination is "" (empty). XHR / report: destination is

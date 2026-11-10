@@ -135,6 +135,7 @@ export function parseRequest(
 		fetchInitiatorOrigin: params.initiatorOrigin || undefined,
 		// TODO: should really just be a boolean
 		fetchCredentialsInclude: params.credentials === "include",
+		fetchCredentialsOmit: params.credentials === "omit",
 		fetchMode,
 		destination,
 		isIframe: params.isIframe === "1",
